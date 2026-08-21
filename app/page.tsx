@@ -79,7 +79,7 @@ function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
 }
 
 const ui: Record<string, Bi> = {
-  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 06", "ENGINEERING CALCULATOR · REV 06"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนในทุกขั้นตอน", "beautifully clear."], intro: ["เครื่องมือคำนวณระบบลำเลียงและนิวเมติก พร้อมหน่วย สูตร และผลลัพธ์ที่ตรวจสอบย้อนกลับได้", "Verified conveyor and pneumatic calculators with traceable units, formulas, and live results."], calculators: ["7 หมวดคำนวณ", "7 calculator groups"], live: ["ผลลัพธ์ทันที", "Live results"], units: ["หน่วย SI", "SI units"], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
+  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 07", "ENGINEERING CALCULATOR · REV 07"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนในทุกขั้นตอน", "beautifully clear."], intro: ["เครื่องมือคำนวณระบบลำเลียงและนิวเมติก พร้อมหน่วย สูตร และผลลัพธ์ที่ตรวจสอบย้อนกลับได้", "Verified conveyor and pneumatic calculators with traceable units, formulas, and live results."], calculators: ["7 หมวดคำนวณ", "7 calculator groups"], live: ["ผลลัพธ์ทันที", "Live results"], units: ["หน่วย SI", "SI units"], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
 };
 
 type GeneralInput = { key: string; label: Bi; unit: string; step?: number };
@@ -133,7 +133,7 @@ function GeneralCalculators({ lang, exportLabel }: { lang: Lang; exportLabel: st
 }
 
 export default function Home() {
-  const [active, setActive] = useState<ModuleId>("general"), [lang, setLang] = useState<Lang>("th"), [inputs, setInputs] = useState<Record<ModuleId, NumericFields>>(defaults), [copied, setCopied] = useState(false), [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [active, setActive] = useState<ModuleId>("general"), [lang, setLang] = useState<Lang>("th"), [inputs, setInputs] = useState<Record<ModuleId, NumericFields>>(defaults), [copied, setCopied] = useState(false), [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null), [standalone, setStandalone] = useState(false), [updating, setUpdating] = useState(false);
   const result = useMemo(() => calculate(active, inputs[active], lang), [active, inputs, lang]), current = modules.find((item) => item.id === active)!;
   const [headlineLabel, headlineValue, headlineUnit, headlineDigits] = result.headline;
   const U = (key: string) => tr(ui[key], lang);
@@ -141,18 +141,39 @@ export default function Home() {
   const copySummary = async () => { const lines = [`${tr(current.label, lang)} — ${result.status}`, `${headlineLabel}: ${format(headlineValue, headlineDigits)} ${headlineUnit}`, ...result.metrics.map(([label, value, unit, digits]) => `${label}: ${format(value, digits)} ${unit}`), "", U("formula"), result.formula]; await navigator.clipboard.writeText(lines.join("\n")); setCopied(true); window.setTimeout(() => setCopied(false), 1600); };
   const exportPdf = () => { const previous = document.title; document.title = `CalFlow - ${tr(current.label, lang)}`; window.print(); window.setTimeout(() => { document.title = previous; }, 300); };
   useEffect(() => {
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register(new URL("sw.js", window.location.href).pathname).catch(() => undefined);
+    setStandalone(window.matchMedia("(display-mode: standalone)").matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+    let refreshing = false;
+    const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
+      const workerUrl = new URL("sw.js?v=7", window.location.href);
+      navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
+    }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
     window.addEventListener("beforeinstallprompt", capture);
-    return () => window.removeEventListener("beforeinstallprompt", capture);
+    return () => { window.removeEventListener("beforeinstallprompt", capture); navigator.serviceWorker?.removeEventListener("controllerchange", reloadForUpdate); };
   }, []);
   const installApp = async () => {
     if (installPrompt) { await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null); return; }
     window.alert(lang === "th" ? "iPhone/iPad: เปิดเว็บนี้ใน Safari แล้วแตะ แชร์ → เพิ่มไปยังหน้าจอโฮม\n\nคอมพิวเตอร์/Android: เปิดด้วย Chrome หรือ Edge แล้วเลือก Install app" : "iPhone/iPad: Open this site in Safari, then tap Share → Add to Home Screen.\n\nDesktop/Android: Open in Chrome or Edge and choose Install app.");
   };
+  const updateApp = async () => {
+    setUpdating(true);
+    try {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      await registration?.update();
+      registration?.waiting?.postMessage("SKIP_WAITING");
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter((key) => key.startsWith("calflow-")).map((key) => caches.delete(key)));
+      }
+    } finally {
+      window.location.reload();
+    }
+  };
 
   return <main><div className="ambient ambient-one" /><div className="ambient ambient-two" />
-    <header className="topbar"><a className="brand" href="#top"><span className="brand-mark">C</span><span>CalFlow</span></a><div className="top-actions"><button className="install-button" onClick={installApp}>↓ <span>{U("install")}</span></button><div className="language-switch"><button className={lang === "th" ? "active" : ""} onClick={() => setLang("th")}>TH</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="topbar-meta"><span className="live-dot" />{U("verified")}</div></div></header>
+    <header className="topbar"><a className="brand" href="#top"><span className="brand-mark">C</span><span>CalFlow</span></a><div className="top-actions"><button className="install-button" disabled={updating} onClick={standalone ? updateApp : installApp}>{standalone ? "↻" : "↓"} <span>{updating ? U("updating") : standalone ? U("update") : U("install")}</span></button><div className="language-switch"><button className={lang === "th" ? "active" : ""} onClick={() => setLang("th")}>TH</button><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>EN</button></div><div className="topbar-meta"><span className="live-dot" />{U("verified")}</div></div></header>
     <section className="hero" id="top"><div className="eyebrow">{U("eyebrow")}</div><h1>{U("title1")}<br /><span>{U("title2")}</span></h1><p>{U("intro")}</p><div className="hero-chips"><span>{U("calculators")}</span><span>{U("live")}</span><span>{U("units")}</span></div></section>
     <nav className="module-dock">{modules.map((item) => <button key={item.id} className={active === item.id ? "module-button active" : "module-button"} onClick={() => setActive(item.id)}><span className="module-symbol">{item.symbol}</span><span><strong>{tr(item.label, lang)}</strong><small>{tr(item.short, lang)}</small></span></button>)}</nav>
     <div className="print-title"><strong>{U("report")}</strong><span>{tr(current.label, lang)}</span></div>

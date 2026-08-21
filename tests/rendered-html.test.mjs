@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import test from "node:test";
 
 async function render() {
@@ -19,6 +20,7 @@ test("server-renders the CalFlow calculator", async () => {
   const html = await response.text();
   assert.match(html, /<title>CalFlow — Engineering Calculator<\/title>/i);
   assert.match(html, /คำนวณงานวิศวกรรม/);
+  assert.match(html, /REV 07/);
   assert.match(html, /กระบอกลม/);
   assert.match(html, /สายพานลำเลียง/);
   assert.match(html, /สายพานเรียบ/);
@@ -35,4 +37,13 @@ test("server-renders the CalFlow calculator", async () => {
   assert.match(html, /EN/);
   assert.match(html, /https:\/\/calflow\.example\/og\.png/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/i);
+});
+
+test("service worker forces installed-app updates", async () => {
+  const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(source, /calflow-v7/);
+  assert.match(source, /skipWaiting/);
+  assert.match(source, /clients\.claim/);
+  assert.match(source, /client\.navigate\(client\.url\)/);
+  assert.match(source, /cache: "no-store"/);
 });
