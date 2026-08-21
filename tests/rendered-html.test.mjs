@@ -20,7 +20,9 @@ test("server-renders the CalFlow calculator", async () => {
   const html = await response.text();
   assert.match(html, /<title>CalFlow — Engineering Calculator<\/title>/i);
   assert.match(html, /คำนวณงานวิศวกรรม/);
-  assert.match(html, /REV 09/);
+  assert.match(html, /REV 10/);
+  assert.match(html, /general-mini-visual/);
+  assert.equal((html.match(/general-mini-visual/g) ?? []).length, 14);
   assert.match(html, /Thanakrit Posa/);
   assert.doesNotMatch(html, /เครื่องมือคำนวณระบบลำเลียงและนิวเมติก/);
   assert.match(html, /กระบอกลม/);
@@ -42,7 +44,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v9/);
+  assert.match(source, /calflow-v10/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
@@ -54,4 +56,5 @@ test("includes live graphics for every engineering module", async () => {
   for (const visual of ["piston-motion", "belt-motion", "chain-motion", "bucket-motion", "screw-motion"]) assert.match(source, new RegExp(visual));
   assert.match(source, /Dynamic operating graphic/);
   assert.match(source, /EngineeringVisual module=\{active\}/);
+  assert.match(source, /GeneralMiniVisual id=\{card\.id\}/);
 });

@@ -80,7 +80,7 @@ function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
 }
 
 const ui: Record<string, Bi> = {
-  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 09", "ENGINEERING CALCULATOR · REV 09"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
+  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 10", "ENGINEERING CALCULATOR · REV 10"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
 };
 
 function EngineeringVisual({ module, values, lang }: { module: Exclude<ModuleId, "general">; values: NumericFields; lang: Lang }) {
@@ -132,6 +132,42 @@ const generalDefaults: NumericFields = {
 const gf = (key: string, th: string, en: string, unit: string, step = .01): GeneralInput => ({ key, label: [th, en], unit, step });
 const safeDivide = (numerator: number, denominator: number) => denominator > 0 ? numerator / denominator : 0;
 
+function GeneralMiniVisual({ id, values, value }: { id: string; values: NumericFields; value: number }) {
+  const output = finite(value);
+  const wrap = (graphic: ReactNode) => <div className={`general-mini-visual mini-${id}`} aria-hidden="true"><span>LIVE</span>{graphic}</div>;
+  if (id === "motion") {
+    const duration = Math.max(.8, Math.min(5, 20 / Math.max(Math.abs(output), .1)));
+    return wrap(<svg viewBox="0 0 280 90"><path d="M28 61H252" stroke="#b8c7d7" strokeWidth="6" strokeLinecap="round"/><path d="M38 31h148l-12-9m12 9-12 9" fill="none" stroke="#1387ff" strokeWidth="4" strokeLinecap="round"/><circle className="mini-traveler" style={{ animationDuration: `${duration}s` }} cx="43" cy="61" r="12" fill="#087af6"/><text x="197" y="35" fill="#687584" fontSize="10">v = {format(output, 2)} m/s</text></svg>);
+  }
+  if (["belt-speed", "motor-rpm", "pulley-diameter"].includes(id)) {
+    const duration = Math.max(.8, Math.min(4, 38 / Math.max(Math.abs(output), .1)));
+    return wrap(<svg viewBox="0 0 280 90"><path d="M61 35h158M61 68h158" stroke="#8494a4" strokeWidth="9" strokeLinecap="round"/><g className="mini-rotate" style={{ animationDuration: `${duration}s`, transformOrigin: "62px 52px" }}><circle cx="62" cy="52" r="26" fill="#44515e" stroke="#9aabba" strokeWidth="5"/><path d="M62 34v36M44 52h36" stroke="#d9e3ed" strokeWidth="4"/></g><g className="mini-rotate" style={{ animationDuration: `${duration}s`, transformOrigin: "218px 52px" }}><circle cx="218" cy="52" r="26" fill="#44515e" stroke="#9aabba" strokeWidth="5"/><path d="M218 34v36M200 52h36" stroke="#d9e3ed" strokeWidth="4"/></g><path className="mini-dash" style={{ animationDuration: `${duration}s` }} d="M67 35h145" stroke="#1387ff" strokeWidth="4" strokeDasharray="18 12"/></svg>);
+  }
+  if (id === "chain-speed") {
+    const duration = Math.max(.8, Math.min(4, 38 / Math.max(Math.abs(output), .1)));
+    return wrap(<svg viewBox="0 0 280 90"><rect x="42" y="20" width="196" height="54" rx="27" fill="none" stroke="#c1ccd7" strokeWidth="11"/><rect className="mini-chain" style={{ animationDuration: `${duration}s` }} x="42" y="20" width="196" height="54" rx="27" fill="none" stroke="#4c5967" strokeWidth="5" strokeDasharray="4 9"/><circle cx="72" cy="47" r="18" fill="#667584"/><circle cx="208" cy="47" r="18" fill="#667584"/><circle cx="72" cy="47" r="6" fill="#1387ff"/><circle cx="208" cy="47" r="6" fill="#1387ff"/></svg>);
+  }
+  if (id === "motor-torque") {
+    const duration = Math.max(.8, Math.min(4, 120 / Math.max(Math.abs(output), .1)));
+    return wrap(<svg viewBox="0 0 280 90"><rect x="78" y="25" width="124" height="45" rx="18" fill="#d9e4ef" stroke="#8fa1b3" strokeWidth="4"/><g className="mini-rotate" style={{ animationDuration: `${duration}s`, transformOrigin: "140px 47px" }}><circle cx="140" cy="47" r="30" fill="#087af6" stroke="#b9ddff" strokeWidth="6"/><path d="M140 24v46M117 47h46M124 31l32 32M156 31l-32 32" stroke="#e7f4ff" strokeWidth="4"/></g><path d="M203 47h49" stroke="#6d7c8b" strokeWidth="11" strokeLinecap="round"/></svg>);
+  }
+  if (id === "unit-conversion") {
+    const marker = 30 + (Math.abs(output) % 1000) / 1000 * 220;
+    return wrap(<svg viewBox="0 0 280 90"><rect x="24" y="27" width="232" height="43" rx="10" fill="#fff2bf" stroke="#d9b84e" strokeWidth="3"/>{[0,1,2,3,4,5,6,7,8,9,10].map((tick) => <path key={tick} d={`M${34 + tick * 21.2} 30v${tick % 5 === 0 ? 23 : 13}`} stroke="#806a24" strokeWidth="2"/>)}<path d={`M${marker} 18v61`} stroke="#087af6" strokeWidth="4" strokeLinecap="round"/><circle cx={marker} cy="18" r="6" fill="#087af6"/></svg>);
+  }
+  if (id === "electricity") {
+    const levels = [values.electricPower, values.electricHours, values.electricRate, output].map((item) => 12 + Math.min(48, Math.log10(Math.abs(item) + 1) * 27));
+    return wrap(<svg viewBox="0 0 280 90"><path className="mini-pulse" d="M30 48h52l13-23 19 46 18-34 14 22 17-11h87" fill="none" stroke="#1387ff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/><g fill="#83bdff" opacity=".45">{levels.map((height, index) => <rect key={index} x={50 + index * 52} y={82 - height} width="27" height={height} rx="6"/>)}</g></svg>);
+  }
+  if (id === "load-utilization") {
+    const percent = Math.max(0, Math.min(100, output)), angle = -70 + percent * 1.4;
+    return wrap(<svg viewBox="0 0 280 90"><path d="M73 72a67 67 0 01134 0" fill="none" stroke="#d9e3ed" strokeWidth="17" strokeLinecap="round"/><path d="M73 72a67 67 0 01107-54" fill="none" stroke={percent <= 80 ? "#34c759" : "#ff9f0a"} strokeWidth="17" strokeLinecap="round"/><path d="M140 72V27" stroke="#344150" strokeWidth="5" strokeLinecap="round" transform={`rotate(${angle} 140 72)`}/><circle cx="140" cy="72" r="10" fill="#344150"/><text x="122" y="61" fill="#53606d" fontSize="11" fontWeight="700">{format(percent, 1)}%</text></svg>);
+  }
+  const fillHeight = Math.min(48, 12 + Math.log10(Math.abs(output) + 1) * 16), fillY = 76 - fillHeight;
+  const shape = id === "rect-volume" ? <rect x="78" y="18" width="124" height="61" rx="8"/> : id === "cylinder-volume" ? <><ellipse cx="140" cy="24" rx="58" ry="14"/><path d="M82 24v48c0 18 116 18 116 0V24"/><ellipse cx="140" cy="72" rx="58" ry="14"/></> : id === "cone-volume" ? <path d="M140 12L72 76h136z"/> : id === "sphere-volume" ? <><circle cx="140" cy="46" r="38"/><ellipse cx="140" cy="46" rx="38" ry="14"/></> : <path d="M140 10L70 72h140zM140 10l32 62"/>;
+  return wrap(<svg viewBox="0 0 280 90"><defs><linearGradient id={`volume-fill-${id}`} x1="0" x2="0" y1="0" y2="1"><stop stopColor="#54a9ff"/><stop offset="1" stopColor="#087af6"/></linearGradient></defs><rect className="mini-volume-fill" x="69" y={fillY} width="142" height={fillHeight} rx="8" fill={`url(#volume-fill-${id})`} opacity=".3"/><g fill="rgba(240,246,252,.72)" stroke="#66798b" strokeWidth="4" strokeLinejoin="round">{shape}</g><path className="mini-wave" d={`M76 ${fillY + 8}q16-8 32 0t32 0 32 0 32 0`} fill="none" stroke="#1387ff" strokeWidth="3"/></svg>);
+}
+
 function GeneralCalculators({ lang, exportLabel }: { lang: Lang; exportLabel: string }) {
   const [values, setValues] = useState<NumericFields>({ ...generalDefaults });
   const updateGeneral = (key: string, value: string) => setValues((current) => ({ ...current, [key]: Number(value) }));
@@ -154,7 +190,7 @@ function GeneralCalculators({ lang, exportLabel }: { lang: Lang; exportLabel: st
 
   return <section className="general-section" aria-live="polite">
     <div className="general-heading"><div><span className="section-kicker">{lang === "th" ? "GENERAL CALCULATORS" : "GENERAL CALCULATORS"}</span><h2>{lang === "th" ? "เครื่องคำนวณใช้งานทั่วไป" : "Everyday engineering calculators"}</h2><p>{lang === "th" ? "รวมสูตรจากชีต General และแก้สมการแรงบิดให้ถูกต้องตามหลักวิศวกรรม" : "Workbook-based general formulas with the motor-torque equation corrected for engineering use."}</p></div><div className="general-actions no-print"><button className="text-button" onClick={() => setValues({ ...generalDefaults })}>{lang === "th" ? "ค่าเริ่มต้น" : "Reset"}</button><button className="general-export" onClick={() => window.print()}>{exportLabel} ↓</button></div></div>
-    <div className="general-grid">{cards.map((card) => <article className="general-card glass-card" key={card.id}><div className="general-card-title"><span>{tr(card.eyebrow, lang)}</span><h3>{tr(card.title, lang)}</h3></div><div className="general-inputs">{card.inputs.map((input) => <label className="general-field" key={input.key}><span>{tr(input.label, lang)}</span><div><input type="number" step={input.step} value={values[input.key]} onChange={(event) => updateGeneral(input.key, event.target.value)} aria-label={tr(input.label, lang)} /><em>{input.unit}</em></div></label>)}</div><div className="general-outputs">{card.outputs.map((output, index) => <div key={`${card.id}-${index}`}><span>{tr(output.label, lang)}</span><strong>{format(output.value, output.digits ?? 2)} <small>{output.unit}</small></strong></div>)}</div>{card.status && <div className={card.healthy ? "general-status good" : "general-status warning"}><i />{tr(card.status, lang)}</div>}<code className="general-formula">{card.formula}</code></article>)}</div>
+    <div className="general-grid">{cards.map((card) => <article className="general-card glass-card" key={card.id}><div className="general-card-title"><span>{tr(card.eyebrow, lang)}</span><h3>{tr(card.title, lang)}</h3></div><GeneralMiniVisual id={card.id} values={values} value={card.outputs[0].value} /><div className="general-inputs">{card.inputs.map((input) => <label className="general-field" key={input.key}><span>{tr(input.label, lang)}</span><div><input type="number" step={input.step} value={values[input.key]} onChange={(event) => updateGeneral(input.key, event.target.value)} aria-label={tr(input.label, lang)} /><em>{input.unit}</em></div></label>)}</div><div className="general-outputs">{card.outputs.map((output, index) => <div key={`${card.id}-${index}`}><span>{tr(output.label, lang)}</span><strong>{format(output.value, output.digits ?? 2)} <small>{output.unit}</small></strong></div>)}</div>{card.status && <div className={card.healthy ? "general-status good" : "general-status warning"}><i />{tr(card.status, lang)}</div>}<code className="general-formula">{card.formula}</code></article>)}</div>
   </section>;
 }
 
@@ -172,7 +208,7 @@ export default function Home() {
     const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
-      const workerUrl = new URL("sw.js?v=9", window.location.href);
+      const workerUrl = new URL("sw.js?v=10", window.location.href);
       navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
     }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
