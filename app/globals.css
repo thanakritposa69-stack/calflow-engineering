@@ -47,7 +47,8 @@ main { min-height:100vh; overflow:hidden; position:relative; padding:0 28px; bac
 .field:focus-within { border-color:rgba(0,122,255,.45); box-shadow:0 0 0 4px rgba(0,122,255,.08); }
 .field>span { display:block; margin-bottom:7px; color:#717681; font-size:11px; font-weight:600; }
 .field-control { display:flex; align-items:baseline; gap:8px; }
-.field input { width:100%; min-width:0; border:0; outline:0; padding:0; background:transparent; color:#17191d; font-size:20px; font-weight:650; letter-spacing:-.03em; }
+.field input, .field select { width:100%; min-width:0; border:0; outline:0; padding:0; background:transparent; color:#17191d; font-size:20px; font-weight:650; letter-spacing:-.03em; }
+.field select { cursor:pointer; }
 .field em { color:#9297a1; font-size:11px; font-style:normal; white-space:nowrap; }
 .formula-note { margin-top:18px; border-top:1px solid var(--line); padding-top:15px; }
 .formula-note summary { list-style:none; display:flex; justify-content:space-between; color:#5f6570; font-size:12px; font-weight:650; cursor:pointer; }
@@ -113,7 +114,7 @@ footer { position:relative; z-index:1; max-width:1060px; margin:0 auto; padding:
   .input-grid { max-height:none; overflow:visible; grid-template-columns:repeat(3,1fr); gap:7px; }
   .field { padding:8px 10px; border-radius:9px; }
   .field>span { margin-bottom:3px; font-size:9px; }
-  .field input { font-size:14px; }
+  .field input, .field select { font-size:14px; }
   .result-panel .metric-list { grid-template-columns:repeat(2,1fr); box-shadow:none; }
   .metric-row { min-height:42px; padding:8px 10px; }
   .formula-card { color:#111; background:#f4f5f7; border:1px solid #d7dbe0; break-inside:avoid; }
