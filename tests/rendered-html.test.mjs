@@ -20,11 +20,12 @@ test("server-renders the CalFlow calculator", async () => {
   const html = await response.text();
   assert.match(html, /<title>CalFlow — Engineering Calculator<\/title>/i);
   assert.match(html, /คำนวณงานวิศวกรรม/);
-  assert.match(html, /REV 07/);
+  assert.match(html, /REV 08/);
+  assert.match(html, /Thanakrit Posa/);
+  assert.doesNotMatch(html, /เครื่องมือคำนวณระบบลำเลียงและนิวเมติก/);
   assert.match(html, /กระบอกลม/);
   assert.match(html, /สายพานลำเลียง/);
   assert.match(html, /สายพานเรียบ/);
-  assert.match(html, /7 หมวดคำนวณ/);
   assert.match(html, /เครื่องคำนวณใช้งานทั่วไป/);
   assert.match(html, /แรงบิดมอเตอร์/);
   assert.match(html, /T = 9,550 × P ÷ n/);
@@ -41,7 +42,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v7/);
+  assert.match(source, /calflow-v8/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
