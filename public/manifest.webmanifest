@@ -1,0 +1,14 @@
+{
+  "name": "CalFlow Engineering Toolkit",
+  "short_name": "CalFlow",
+  "description": "Bilingual engineering calculators for conveyor and pneumatic systems.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#f4f5f7",
+  "lang": "th",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
