@@ -25,7 +25,7 @@ const modules: Array<{ id: ModuleId; label: Bi; short: Bi; symbol: string }> = [
 const defaults: Record<ModuleId, NumericFields> = {
   general: {},
   scientific: {},
-  air: { standard: 15552, bore: 63, rod: 20, flow: 10, pressure: 4 },
+  air: { standard: 15552, loadMass: 100, loadDirection: 1, bore: 80, rod: 25, flow: 10, pressure: 6 },
   belt: { capacity: 50, density: 2.16, selectedWidth: 500, materialAngle: 35, troughAngle: 35, slopeCoefficient: 0.85, speed: 1.055, carryIdler: 16, returnIdler: 11.4, carryPitch: 1.2, returnPitch: 3, length: 98, coefficient: 1.8, friction: 0.02, gravity: 9.81, efficiency: 0.8 },
   flat: { length: 7000, angle: 30, throughput: 800, bagLength: 1000, gap: 0, bagWeight: 25, pulleyDiameter: 165, friction: 0.05, gearEfficiency: 0.9, startupFactor: 1.5, serviceFactor: 1.2, motorRpm: 1450, driveTeeth: 15, drivenTeeth: 45, gearboxRatio: 18.79 },
   chain: { load: 200, length: 8, speed: 20, friction: 0.21, efficiency: 0.8, movingMass: 4.16, speedFactor: 1, allowance: 5800, sprocketDiameter: 139.9, motorFactor: 1.1, loadFactor: 1.25 },
@@ -84,7 +84,7 @@ function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
 }
 
 const ui: Record<string, Bi> = {
-  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 14", "ENGINEERING CALCULATOR · REV 14"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
+  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 15", "ENGINEERING CALCULATOR · REV 15"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
 };
 
 const airStandardOptions: Record<number, { name: Bi; bores: Record<number, number> }> = {
@@ -95,6 +95,21 @@ const airStandardOptions: Record<number, { name: Bi; bores: Record<number, numbe
 function AirStandardFields({ values, lang, onChange }: { values: NumericFields; lang: Lang; onChange: (next: NumericFields) => void }) {
   const standard = values.standard ?? 0;
   const table = airStandardOptions[standard];
+  const sizingPressure = 6, usableFactor = .7, directionFactor = values.loadDirection === 0 ? .2 : 1;
+  const requiredForce = Math.max(values.loadMass, 0) * 9.81 * directionFactor;
+  const standardBores = Object.keys(airStandardOptions[15552].bores).map(Number);
+  const usableForce = (bore: number) => Math.PI * (bore / 1000) ** 2 / 4 * sizingPressure * 100000 * usableFactor;
+  const matchedBore = standardBores.find((bore) => usableForce(bore) >= requiredForce);
+  const recommendedBore = matchedBore ?? standardBores[standardBores.length - 1];
+  const recommendedRod = airStandardOptions[15552].bores[recommendedBore];
+  const capacityFactor = values.loadDirection === 0 ? .2 : 1;
+  const maxRecommendedMass = usableForce(recommendedBore) / (9.81 * capacityFactor);
+  const applyQuickSizing = (loadMass: number, loadDirection: number) => {
+    const nextDirectionFactor = loadDirection === 0 ? .2 : 1;
+    const nextForce = Math.max(loadMass, 0) * 9.81 * nextDirectionFactor;
+    const nextBore = standardBores.find((bore) => usableForce(bore) >= nextForce) ?? standardBores[standardBores.length - 1];
+    onChange({ ...values, loadMass, loadDirection, standard: 15552, bore: nextBore, rod: airStandardOptions[15552].bores[nextBore], pressure: sizingPressure });
+  };
   const setStandard = (nextStandard: number) => {
     const nextTable = airStandardOptions[nextStandard];
     if (!nextTable) { onChange({ ...values, standard: 0 }); return; }
@@ -104,6 +119,15 @@ function AirStandardFields({ values, lang, onChange }: { values: NumericFields; 
   };
   const setBore = (bore: number) => onChange({ ...values, bore, rod: table?.bores[bore] ?? values.rod });
   return <>
+    <section className="air-quick-sizing">
+      <div className="air-quick-heading"><div><span>{lang === "th" ? "เลือกกระบอกแบบเร็ว" : "QUICK CYLINDER SIZING"}</span><strong>{lang === "th" ? "กรอกเพียง 2 ค่า" : "Only 2 inputs"}</strong></div><em>AUTO</em></div>
+      <div className="air-quick-inputs">
+        <label><span>{lang === "th" ? "น้ำหนักโหลด" : "Load weight"}</span><div><input aria-label={lang === "th" ? "น้ำหนักโหลด" : "Load weight"} type="number" min="0" step="any" value={values.loadMass} onChange={(event) => applyQuickSizing(Number(event.target.value), values.loadDirection)}/><em>kg</em></div></label>
+        <label><span>{lang === "th" ? "ทิศทางการเคลื่อนที่" : "Movement direction"}</span><div><select aria-label={lang === "th" ? "ทิศทางการเคลื่อนที่" : "Movement direction"} value={values.loadDirection} onChange={(event) => applyQuickSizing(values.loadMass, Number(event.target.value))}><option value={0}>{lang === "th" ? "→ แนวนอน" : "→ Horizontal"}</option><option value={1}>{lang === "th" ? "↑ แนวตั้ง" : "↑ Vertical lift"}</option></select></div></label>
+      </div>
+      <div className={matchedBore ? "air-recommendation" : "air-recommendation warning"}><div><span>{lang === "th" ? "กระบอกที่แนะนำ" : "Recommended cylinder"}</span><strong>Ø{recommendedBore} <small>/ Rod Ø{recommendedRod} mm</small></strong></div><div><span>{lang === "th" ? "แรงที่ต้องใช้" : "Required force"}</span><strong>{format(requiredForce, 0)} <small>N</small></strong></div><div><span>{lang === "th" ? "รับโหลดแนะนำสูงสุด" : "Recommended max load"}</span><strong>{format(maxRecommendedMass, 1)} <small>kg</small></strong></div></div>
+      <p>{matchedBore ? (lang === "th" ? `เลือก ISO 15552 อัตโนมัติ · 6 bar · ใช้แรงได้ 70%${values.loadDirection === 0 ? " · สมมติ μ = 0.20" : ""}` : `Auto-selected ISO 15552 · 6 bar · 70% usable force${values.loadDirection === 0 ? " · assumed μ = 0.20" : ""}`) : (lang === "th" ? "โหลดเกินช่วง Ø125 mm — ควรใช้หลายกระบอกหรือระบบไฮดรอลิก" : "Load exceeds Ø125 mm — consider multiple cylinders or hydraulics")}</p>
+    </section>
     <label className="field air-standard-field"><span>{lang === "th" ? "มาตรฐานกระบอกลม" : "Cylinder standard"}</span><div className="field-control"><select aria-label={lang === "th" ? "มาตรฐานกระบอกลม" : "Cylinder standard"} value={standard} onChange={(event) => setStandard(Number(event.target.value))}><option value={15552}>{tr(airStandardOptions[15552].name, lang)}</option><option value={6432}>{tr(airStandardOptions[6432].name, lang)}</option><option value={0}>{lang === "th" ? "กำหนดเอง / ผู้ผลิตอื่น" : "Custom / Other manufacturer"}</option></select></div></label>
     <label className="field"><span>{lang === "th" ? "ขนาดกระบอก" : "Bore size"}</span><div className="field-control">{table ? <select aria-label={lang === "th" ? "ขนาดกระบอก" : "Bore size"} value={values.bore} onChange={(event) => setBore(Number(event.target.value))}>{Object.keys(table.bores).map(Number).map((bore) => <option value={bore} key={bore}>Ø {bore}</option>)}</select> : <input aria-label={lang === "th" ? "ขนาดกระบอก" : "Bore size"} type="number" min="0" step="1" value={values.bore} onChange={(event) => onChange({ ...values, bore: Number(event.target.value) })}/>}<em>mm</em></div></label>
     <label className={table ? "field air-locked-field" : "field"}><span>{lang === "th" ? "ขนาดก้าน" : "Rod size"}</span><div className="field-control"><input aria-label={lang === "th" ? "ขนาดก้าน" : "Rod size"} aria-readonly={Boolean(table)} readOnly={Boolean(table)} type="number" min="0" step="1" value={values.rod} onChange={(event) => onChange({ ...values, rod: Number(event.target.value) })}/><em>{table ? "AUTO" : "mm"}</em></div></label>
@@ -429,7 +453,7 @@ export default function Home() {
     const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
-      const workerUrl = new URL("sw.js?v=14", window.location.href);
+      const workerUrl = new URL("sw.js?v=15", window.location.href);
       navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
     }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };

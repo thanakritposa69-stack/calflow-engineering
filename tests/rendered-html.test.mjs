@@ -20,7 +20,7 @@ test("server-renders the CalFlow calculator", async () => {
   const html = await response.text();
   assert.match(html, /<title>CalFlow — Engineering Calculator<\/title>/i);
   assert.match(html, /คำนวณงานวิศวกรรม/);
-  assert.match(html, /REV 14/);
+  assert.match(html, /REV 15/);
   assert.match(html, /general-mini-visual/);
   assert.equal((html.match(/general-mini-visual/g) ?? []).length, 14);
   assert.match(html, /Thanakrit Posa/);
@@ -46,7 +46,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v14/);
+  assert.match(source, /calflow-v15/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
@@ -82,4 +82,9 @@ test("locks air-cylinder rod sizes to the selected ISO series", async () => {
   assert.match(source, /AirStandardFields/);
   assert.match(source, /readOnly=\{Boolean\(table\)\}/);
   assert.match(source, /Custom \/ Other manufacturer/);
+  assert.match(source, /air-quick-sizing/);
+  assert.match(source, /QUICK CYLINDER SIZING/);
+  assert.match(source, /usableFactor = \.7/);
+  assert.match(source, /directionFactor = values\.loadDirection === 0 \? \.2 : 1/);
+  assert.match(source, /pressure: sizingPressure/);
 });
