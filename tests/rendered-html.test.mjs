@@ -47,7 +47,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v17/);
+  assert.match(source, /calflow-v18/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
@@ -68,6 +68,12 @@ test("includes a safe full scientific calculator", async () => {
   assert.match(source, /ScientificCalculator/);
   assert.match(source, /Factorial requires an integer from 0 to 170/);
   assert.match(source, /sin.*cos.*tan/);
+  assert.match(source, /display-input/);
+  assert.match(source, /display-output/);
+  assert.match(source, /formatFraction/);
+  assert.match(source, /nCr/);
+  assert.match(source, /nPr/);
+  assert.match(source, /SHIFT/);
   assert.match(source, /function TrigVisual/);
   assert.match(source, /triangle-inputs/);
   assert.match(source, /triangle-stage/);

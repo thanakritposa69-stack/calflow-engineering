@@ -271,6 +271,13 @@ function evaluateExpression(source: string, angleMode: AngleMode, ans: number) {
     for (let n = 2; n <= value; n += 1) result *= n;
     return result;
   };
+  const permutation = (n: number, r: number) => {
+    if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0 || r < 0 || r > n || n > 170) throw new Error("nPr requires integers with 0 ≤ r ≤ n ≤ 170");
+    let result = 1;
+    for (let value = n - r + 1; value <= n; value += 1) result *= value;
+    return result;
+  };
+  const combination = (n: number, r: number) => permutation(n, Math.min(r, n - r)) / factorial(Math.min(r, n - r));
   const parsePrimary = (): number => {
     const token = take();
     if (!token) throw new Error("Incomplete expression");
@@ -312,8 +319,9 @@ function evaluateExpression(source: string, angleMode: AngleMode, ans: number) {
       if (peek().type === "op" && ["*", "/"].includes(peek().value)) {
         const operator = take().value, right = parseUnary();
         value = operator === "*" ? value * right : value / right;
-      } else if (peek().type === "ident" && peek().value === "mod") {
-        take(); value %= parseUnary();
+      } else if (peek().type === "ident" && ["mod", "ncr", "npr"].includes(peek().value)) {
+        const operator = take().value, right = parseUnary();
+        value = operator === "mod" ? value % right : operator === "ncr" ? combination(value, right) : permutation(value, right);
       } else if (startsPrimary(peek())) value *= parseUnary();
       else break;
     }
@@ -336,6 +344,19 @@ function formatCalculatorValue(value: number) {
   const absolute = Math.abs(value);
   if ((absolute >= 1e12 || (absolute > 0 && absolute < 1e-9))) return value.toExponential(8);
   return Number(value.toPrecision(12)).toLocaleString("en-US", { maximumFractionDigits: 10 });
+}
+
+function formatFraction(value: number) {
+  if (!Number.isFinite(value)) return "—";
+  if (Number.isInteger(value)) return String(value);
+  const sign = value < 0 ? "−" : "", target = Math.abs(value);
+  let bestNumerator = Math.round(target), bestDenominator = 1, bestError = Math.abs(target - bestNumerator);
+  for (let denominator = 2; denominator <= 1000; denominator += 1) {
+    const numerator = Math.round(target * denominator), error = Math.abs(target - numerator / denominator);
+    if (error < bestError) { bestNumerator = numerator; bestDenominator = denominator; bestError = error; }
+    if (error < 1e-10) break;
+  }
+  return bestError < 1e-8 ? `${sign}${bestNumerator}/${bestDenominator}` : formatCalculatorValue(value);
 }
 
 function TrigVisual({ lang }: { expression: string; angleMode: AngleMode; ans: number; lang: Lang }) {
@@ -371,7 +392,7 @@ function TrigVisual({ lang }: { expression: string; angleMode: AngleMode; ans: n
 }
 
 function ScientificCalculator({ lang, exportLabel }: { lang: Lang; exportLabel: string }) {
-  const [expression, setExpression] = useState("sin(30)"), [angleMode, setAngleMode] = useState<AngleMode>("DEG"), [ans, setAns] = useState(.5), [memory, setMemory] = useState(0), [history, setHistory] = useState<Array<{ expression: string; result: number }>>([]), [copied, setCopied] = useState(false);
+  const [expression, setExpression] = useState("sin(30)"), [angleMode, setAngleMode] = useState<AngleMode>("DEG"), [ans, setAns] = useState(.5), [memory, setMemory] = useState(0), [history, setHistory] = useState<Array<{ expression: string; result: number }>>([]), [copied, setCopied] = useState(false), [shift, setShift] = useState(false), [hyperbolic, setHyperbolic] = useState(false), [fractionMode, setFractionMode] = useState(false);
   const preview = useMemo(() => { try { return { value: evaluateExpression(expression, angleMode, ans), error: "" }; } catch (error) { return { value: NaN, error: error instanceof Error ? error.message : "Invalid expression" }; } }, [expression, angleMode, ans]);
   const append = (text: string) => setExpression((current) => current === "0" ? text : current + text);
   const clear = () => setExpression("");
@@ -379,14 +400,14 @@ function ScientificCalculator({ lang, exportLabel }: { lang: Lang; exportLabel: 
     if (preview.error || !expression.trim()) return;
     setAns(preview.value);
     setHistory((current) => [{ expression, result: preview.value }, ...current.filter((item) => item.expression !== expression)].slice(0, 8));
-    setExpression(String(Number(preview.value.toPrecision(14))));
   };
   const copyResult = async () => {
     if (preview.error) return;
     await navigator.clipboard.writeText(`${expression} = ${formatCalculatorValue(preview.value)}`);
     setCopied(true); window.setTimeout(() => setCopied(false), 1500);
   };
-  const functions = [["sin", "sin("], ["cos", "cos("], ["tan", "tan("], ["sin⁻¹", "asin("], ["cos⁻¹", "acos("], ["tan⁻¹", "atan("], ["sinh", "sinh("], ["cosh", "cosh("], ["tanh", "tanh("], ["ln", "ln("], ["log₁₀", "log("], ["√", "sqrt("], ["∛", "cbrt("], ["|x|", "abs("], ["eˣ", "exp("], ["x!", "!"], ["x²", "square"], ["1/x", "reciprocal"]] as const;
+  const trigFunctions = hyperbolic ? [["sinh", "sinh("], ["cosh", "cosh("], ["tanh", "tanh("]] : shift ? [["sin⁻¹", "asin("], ["cos⁻¹", "acos("], ["tan⁻¹", "atan("]] : [["sin", "sin("], ["cos", "cos("], ["tan", "tan("]];
+  const functions = [...trigFunctions, ["ln", "ln("], ["log₁₀", "log("], ["√", "sqrt("], ["∛", "cbrt("], ["x²", "square"], ["xʸ", "^"], ["1/x", "reciprocal"], ["x!", "!"], ["nCr", " nCr "], ["nPr", " nPr "], ["a⁄b", "/"], ["|x|", "abs("], ["eˣ", "exp("], ["⌊x⌋", "floor("], ["⌈x⌉", "ceil("]] as const;
   const keypad = [["7", "7"], ["8", "8"], ["9", "9"], ["÷", "÷"], ["AC", "clear"], ["4", "4"], ["5", "5"], ["6", "6"], ["×", "×"], ["⌫", "back"], ["1", "1"], ["2", "2"], ["3", "3"], ["−", "−"], ["(", "("], ["0", "0"], [".", "."], ["π", "π"], ["+", "+"], [")", ")"], ["Ans", "Ans"], ["e", "e"], ["%", "%"], ["xʸ", "^"], ["=", "equals"]] as const;
   const press = (action: string) => {
     if (action === "clear") clear();
@@ -397,18 +418,19 @@ function ScientificCalculator({ lang, exportLabel }: { lang: Lang; exportLabel: 
     else append(action);
   };
   return <section className="scientific-section" aria-live="polite">
-    <div className="scientific-heading glass-card"><div><span className="section-kicker">SCIENTIFIC & ENGINEERING</span><h2>{lang === "th" ? "เครื่องคิดเลขวิทยาศาสตร์" : "Scientific calculator"}</h2><p>{lang === "th" ? "คำนวณตรีโกณมิติ ลอการิทึม ยกกำลัง ราก แฟกทอเรียล และสมการหลายขั้นตอน" : "Trigonometry, logarithms, powers, roots, factorials, and multi-step expressions."}</p></div><button className="general-export no-print" onClick={() => window.print()}>{exportLabel} ↓</button></div>
+    <div className="scientific-heading glass-card"><div><span className="section-kicker">SCIENTIFIC & ENGINEERING</span><h2>{lang === "th" ? "เครื่องคิดเลขวิทยาศาสตร์" : "Scientific calculator"}</h2><p>{lang === "th" ? "จอ 2 บรรทัด พร้อมตรีโกณมิติ ลอการิทึม เศษส่วน จัดหมู่ ยกกำลัง ราก และหน่วยมุม DEG/RAD" : "Two-line display with trigonometry, logarithms, fractions, combinations, powers, roots, and DEG/RAD modes."}</p></div><button className="general-export no-print" onClick={() => window.print()}>{exportLabel} ↓</button></div>
     <div className="scientific-layout">
       <div className="calculator-shell glass-card">
         <div className="calculator-toolbar"><div className="angle-switch" aria-label={lang === "th" ? "หน่วยมุม" : "Angle unit"}><button className={angleMode === "DEG" ? "active" : ""} onClick={() => setAngleMode("DEG")}>DEG</button><button className={angleMode === "RAD" ? "active" : ""} onClick={() => setAngleMode("RAD")}>RAD</button></div><span className="memory-indicator">M = {formatCalculatorValue(memory)}</span></div>
-        <div className="calculator-display"><label htmlFor="engineering-expression">{lang === "th" ? "สมการ" : "Expression"}</label><input id="engineering-expression" value={expression} onChange={(event) => setExpression(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); calculateNow(); } else if (event.key === "Escape") clear(); }} placeholder="sin(30) + sqrt(16)" autoComplete="off" spellCheck={false}/><div className={preview.error ? "calculator-result error" : "calculator-result"}><small>{preview.error ? (lang === "th" ? "ตรวจสอบสมการ" : "Check expression") : "="}</small><strong>{preview.error ? "—" : formatCalculatorValue(preview.value)}</strong></div></div>
+        <div className="calculator-display"><div className="calculator-display-status"><span>{angleMode}</span><span>{shift ? "SHIFT" : hyperbolic ? "HYP" : "COMP"}</span><span>{fractionMode ? "a/b" : "DEC"}</span></div><div className="display-line display-input"><label htmlFor="engineering-expression">{lang === "th" ? "บรรทัดสมการ" : "INPUT LINE"}</label><input id="engineering-expression" value={expression} onChange={(event) => setExpression(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); calculateNow(); } else if (event.key === "Escape") clear(); }} placeholder="sin(30) + sqrt(16)" autoComplete="off" spellCheck={false}/></div><div className={preview.error ? "display-line display-output error" : "display-line display-output"}><small>{preview.error ? (lang === "th" ? "ตรวจสอบสมการ" : "Check expression") : (lang === "th" ? "บรรทัดคำตอบ" : "RESULT LINE")}</small><strong>{preview.error ? "—" : fractionMode ? formatFraction(preview.value) : formatCalculatorValue(preview.value)}</strong></div></div>
+        <div className="calculator-mode-row no-print"><button aria-pressed={shift} className={shift ? "active shift" : "shift"} onClick={() => { setShift((value) => !value); setHyperbolic(false); }}>SHIFT</button><button aria-pressed={hyperbolic} className={hyperbolic ? "active" : ""} onClick={() => { setHyperbolic((value) => !value); setShift(false); }}>HYP</button><button aria-pressed={fractionMode} className={fractionMode ? "active" : ""} onClick={() => setFractionMode((value) => !value)}>S⇔D</button><button onClick={() => append("e")}>×10ˣ</button><span>{lang === "th" ? "จอแสดงผล 2 บรรทัด" : "2-line display"}</span></div>
         <div className="memory-row no-print"><button onClick={() => setMemory(0)}>MC</button><button onClick={() => append(memory < 0 ? `(${memory})` : String(memory))}>MR</button><button onClick={() => !preview.error && setMemory((value) => value + preview.value)}>M+</button><button onClick={() => !preview.error && setMemory((value) => value - preview.value)}>M−</button><button onClick={() => setExpression((current) => `-(${current || 0})`)}>±</button><button onClick={() => append(" mod ")}>mod</button></div>
-        <div className="function-grid no-print">{functions.map(([label, action]) => <button key={label} onClick={() => press(action)}>{label}</button>)}</div>
+        <div className="function-grid no-print">{functions.map(([label, action]) => <button key={label} onClick={() => { press(action); if (shift) setShift(false); }}>{label}</button>)}</div>
         <div className="calculator-keypad no-print">{keypad.map(([label, action]) => <button key={label} className={action === "equals" ? "equals" : ["÷", "×", "−", "+", "^"].includes(action) ? "operator" : action === "clear" || action === "back" ? "utility" : ""} onClick={() => press(action)}>{label}</button>)}</div>
         <div className="calculator-actions no-print"><button className="secondary-button" onClick={copyResult}>{copied ? (lang === "th" ? "คัดลอกแล้ว ✓" : "Copied ✓") : (lang === "th" ? "คัดลอกคำตอบ" : "Copy result")}</button><button className="primary-button" onClick={calculateNow}>{lang === "th" ? "คำนวณ" : "Calculate"}</button></div>
         <p className="calculator-hint">{lang === "th" ? "พิมพ์สมการได้โดยตรง • Enter เพื่อคำนวณ • Esc เพื่อล้าง" : "Type an expression directly • Enter to calculate • Esc to clear"}</p>
       </div>
-      <aside className="calculator-side glass-card"><TrigVisual expression={expression} angleMode={angleMode} ans={ans} lang={lang}/><div className="constant-card"><span>{lang === "th" ? "ค่าคงที่" : "CONSTANTS"}</span><button onClick={() => append("π")}><strong>π</strong><small>3.141592653589793</small></button><button onClick={() => append("e")}><strong>e</strong><small>2.718281828459045</small></button><button onClick={() => append("Ans")}><strong>Ans</strong><small>{formatCalculatorValue(ans)}</small></button></div><div className="history-card"><div><span>{lang === "th" ? "ประวัติ" : "HISTORY"}</span>{history.length > 0 && <button className="no-print" onClick={() => setHistory([])}>{lang === "th" ? "ล้าง" : "Clear"}</button>}</div>{history.length === 0 ? <p>{lang === "th" ? "คำตอบที่คำนวณแล้วจะแสดงที่นี่" : "Completed calculations appear here."}</p> : history.map((item, index) => <button key={`${item.expression}-${index}`} onClick={() => { setExpression(item.expression); setAns(item.result); }}><span>{item.expression}</span><strong>= {formatCalculatorValue(item.result)}</strong></button>)}</div><div className="supported-card"><span>{lang === "th" ? "รองรับ" : "SUPPORTED"}</span><p>sin · cos · tan · inverse · hyperbolic</p><p>ln · log₁₀ · √ · ∛ · xʸ · x! · mod · %</p><p>π · e · Ans · DEG / RAD · Memory</p></div></aside>
+      <aside className="calculator-side glass-card"><TrigVisual expression={expression} angleMode={angleMode} ans={ans} lang={lang}/><div className="constant-card"><span>{lang === "th" ? "ค่าคงที่" : "CONSTANTS"}</span><button onClick={() => append("π")}><strong>π</strong><small>3.141592653589793</small></button><button onClick={() => append("e")}><strong>e</strong><small>2.718281828459045</small></button><button onClick={() => append("Ans")}><strong>Ans</strong><small>{formatCalculatorValue(ans)}</small></button></div><div className="history-card"><div><span>{lang === "th" ? "ประวัติ" : "HISTORY"}</span>{history.length > 0 && <button className="no-print" onClick={() => setHistory([])}>{lang === "th" ? "ล้าง" : "Clear"}</button>}</div>{history.length === 0 ? <p>{lang === "th" ? "คำตอบที่คำนวณแล้วจะแสดงที่นี่" : "Completed calculations appear here."}</p> : history.map((item, index) => <button key={`${item.expression}-${index}`} onClick={() => { setExpression(item.expression); setAns(item.result); }}><span>{item.expression}</span><strong>= {formatCalculatorValue(item.result)}</strong></button>)}</div><div className="supported-card"><span>{lang === "th" ? "รองรับ" : "SUPPORTED"}</span><p>SHIFT · HYP · sin · cos · tan · inverse</p><p>fraction · nCr · nPr · ln · log₁₀ · √ · ∛ · xʸ</p><p>π · e · Ans · DEG / RAD · Memory</p></div></aside>
     </div>
   </section>;
 }
@@ -453,7 +475,7 @@ export default function Home() {
     const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
-      const workerUrl = new URL("sw.js?v=17", window.location.href);
+      const workerUrl = new URL("sw.js?v=18", window.location.href);
       navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
     }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
