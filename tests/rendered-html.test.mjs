@@ -47,7 +47,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v20/);
+  assert.match(source, /calflow-v21/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
@@ -80,6 +80,7 @@ test("includes a safe full scientific calculator", async () => {
   assert.match(source, /fraction-composer/);
   assert.match(source, /fractionNumerator/);
   assert.match(source, /fractionDenominator/);
+  assert.match(source, /calculator-key-area/);
   assert.match(source, /function TrigVisual/);
   assert.match(source, /triangle-inputs/);
   assert.match(source, /triangle-stage/);
