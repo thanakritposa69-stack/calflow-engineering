@@ -20,7 +20,7 @@ test("server-renders the CalFlow calculator", async () => {
   const html = await response.text();
   assert.match(html, /<title>CalFlow — Engineering Calculator<\/title>/i);
   assert.match(html, /คำนวณงานวิศวกรรม/);
-  assert.match(html, /REV 13/);
+  assert.match(html, /REV 14/);
   assert.match(html, /general-mini-visual/);
   assert.equal((html.match(/general-mini-visual/g) ?? []).length, 14);
   assert.match(html, /Thanakrit Posa/);
@@ -46,7 +46,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v13/);
+  assert.match(source, /calflow-v14/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
@@ -68,9 +68,10 @@ test("includes a safe full scientific calculator", async () => {
   assert.match(source, /Factorial requires an integer from 0 to 170/);
   assert.match(source, /sin.*cos.*tan/);
   assert.match(source, /function TrigVisual/);
-  assert.match(source, /unit-circle-stage/);
-  assert.match(source, /trig-ray/);
-  assert.match(source, /trig-tangent/);
+  assert.match(source, /triangle-inputs/);
+  assert.match(source, /triangle-stage/);
+  assert.match(source, /Math\.hypot/);
+  assert.match(source, /Math\.atan2/);
   assert.doesNotMatch(source, /\beval\s*\(|new Function\s*\(/);
 });
 

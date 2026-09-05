@@ -84,7 +84,7 @@ function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
 }
 
 const ui: Record<string, Bi> = {
-  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 13", "ENGINEERING CALCULATOR · REV 13"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
+  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 14", "ENGINEERING CALCULATOR · REV 14"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
 };
 
 const airStandardOptions: Record<number, { name: Bi; bores: Record<number, number> }> = {
@@ -314,61 +314,35 @@ function formatCalculatorValue(value: number) {
   return Number(value.toPrecision(12)).toLocaleString("en-US", { maximumFractionDigits: 10 });
 }
 
-function findTrigCall(expression: string) {
-  const match = /\b(asin|acos|atan|sin|cos|tan)\s*\(/i.exec(expression);
-  if (!match) return null;
-  const opening = expression.indexOf("(", match.index);
-  let depth = 0;
-  for (let index = opening; index < expression.length; index += 1) {
-    if (expression[index] === "(") depth += 1;
-    if (expression[index] === ")") {
-      depth -= 1;
-      if (depth === 0) return { name: match[1].toLowerCase(), argument: expression.slice(opening + 1, index) };
-    }
-  }
-  return null;
-}
-
-function TrigVisual({ expression, angleMode, ans, lang }: { expression: string; angleMode: AngleMode; ans: number; lang: Lang }) {
-  const visual = useMemo(() => {
-    const call = findTrigCall(expression);
-    let degrees = 30;
-    let active = "sin";
-    try {
-      if (call) {
-        active = call.name.replace(/^a/, "");
-        if (call.name.startsWith("a")) {
-          const result = evaluateExpression(`${call.name}(${call.argument})`, angleMode, ans);
-          degrees = angleMode === "DEG" ? result : result * 180 / Math.PI;
-        } else {
-          const argument = evaluateExpression(call.argument, angleMode, ans);
-          degrees = angleMode === "DEG" ? argument : argument * 180 / Math.PI;
-        }
-      }
-    } catch { /* Keep the reference angle while an expression is incomplete. */ }
-    const normalized = ((degrees % 360) + 360) % 360;
-    const radians = normalized * Math.PI / 180;
-    const sine = Math.sin(radians), cosine = Math.cos(radians), tangent = Math.tan(radians);
-    const radius = 34, pointLeft = 50 + cosine * radius, pointTop = 50 - sine * radius;
-    const tangentVisual = Math.max(-2.4, Math.min(2.4, tangent));
-    return { degrees, normalized, sine, cosine, tangent, active, pointLeft, pointTop, tangentTop: 50 - tangentVisual * radius };
-  }, [expression, angleMode, ans]);
-  const aria = lang === "th" ? `ภาพวงกลมหนึ่งหน่วย มุม ${visual.degrees.toFixed(1)} องศา` : `Unit circle at ${visual.degrees.toFixed(1)} degrees`;
-  return <div className="trig-visual" role="img" aria-label={aria}>
-    <div className="trig-visual-header"><div><span>{lang === "th" ? "ภาพตรีโกณมิติ" : "TRIG VISUAL"}</span><strong>{lang === "th" ? "วงกลมหนึ่งหน่วย" : "Unit circle"}</strong></div><em>LIVE</em></div>
-    <div className="unit-circle-stage">
-      <div className="trig-axis trig-axis-x"/><div className="trig-axis trig-axis-y"/><div className="unit-circle"/>
-      <div className="trig-ray" style={{ transform: `rotate(${-visual.normalized}deg)` }}/>
-      <div className="trig-projection trig-cos-line" style={{ left: `${Math.min(50, visual.pointLeft)}%`, top: `${visual.pointTop}%`, width: `${Math.abs(visual.pointLeft - 50)}%` }}/>
-      <div className="trig-projection trig-sin-line" style={{ left: `${visual.pointLeft}%`, top: `${Math.min(50, visual.pointTop)}%`, height: `${Math.abs(visual.pointTop - 50)}%` }}/>
-      <div className="trig-tangent" style={{ top: `${Math.min(50, visual.tangentTop)}%`, height: `${Math.abs(visual.tangentTop - 50)}%` }}/>
-      <div className="trig-point" style={{ left: `${visual.pointLeft}%`, top: `${visual.pointTop}%` }}/>
-      <span className="trig-angle">θ {visual.degrees.toFixed(1)}°</span><span className="axis-label axis-zero">0°</span><span className="axis-label axis-ninety">90°</span><span className="axis-label axis-one-eighty">180°</span>
+function TrigVisual({ lang }: { expression: string; angleMode: AngleMode; ans: number; lang: Lang }) {
+  const [base, setBase] = useState(100), [height, setHeight] = useState(500);
+  const safeBase = Math.max(0, base), safeHeight = Math.max(0, height);
+  const hypotenuse = Math.hypot(safeBase, safeHeight);
+  const angle = Math.atan2(safeHeight, safeBase) * 180 / Math.PI;
+  const otherAngle = 90 - angle;
+  const ratio = safeHeight / Math.max(safeBase, .000001);
+  const visualRatio = Math.max(.18, Math.min(4, ratio));
+  const triangleWidth = Math.min(68, 60 / (visualRatio * 1.6));
+  const triangleHeight = visualRatio * 1.6 * triangleWidth;
+  const sine = hypotenuse ? safeHeight / hypotenuse : 0;
+  const cosine = hypotenuse ? safeBase / hypotenuse : 0;
+  const tangent = safeBase ? safeHeight / safeBase : Infinity;
+  const aria = lang === "th" ? `สามเหลี่ยมมุมฉาก ฐาน ${safeBase} สูง ${safeHeight} ด้านทแยง ${hypotenuse.toFixed(2)}` : `Right triangle, base ${safeBase}, height ${safeHeight}, hypotenuse ${hypotenuse.toFixed(2)}`;
+  return <div className="trig-visual">
+    <div className="trig-visual-header"><div><span>{lang === "th" ? "คำนวณตรีโกณมิติ" : "TRIGONOMETRY"}</span><strong>{lang === "th" ? "สามเหลี่ยมมุมฉาก" : "Right triangle"}</strong></div><em>LIVE</em></div>
+    <div className="triangle-inputs">
+      <label><span>{lang === "th" ? "ฐาน / ความยาว" : "Base / Length"}</span><div><input aria-label={lang === "th" ? "ฐานหรือความยาว" : "Base or length"} type="number" min="0" step="any" value={base} onChange={(event) => setBase(Number(event.target.value))}/><em>mm</em></div></label>
+      <label><span>{lang === "th" ? "ความสูง" : "Height"}</span><div><input aria-label={lang === "th" ? "ความสูง" : "Height"} type="number" min="0" step="any" value={height} onChange={(event) => setHeight(Number(event.target.value))}/><em>mm</em></div></label>
     </div>
-    <div className="trig-values">
-      {([["sin", visual.sine], ["cos", visual.cosine], ["tan", visual.tangent]] as const).map(([name, value]) => <div className={visual.active === name ? "active" : ""} key={name}><span>{name} θ</span><strong>{Math.abs(value) > 1e8 ? "∞" : formatCalculatorValue(value)}</strong></div>)}
+    <div className="triangle-stage" role="img" aria-label={aria}>
+      <div className="triangle-shape" style={{ width: `${triangleWidth}%`, height: `${triangleHeight}%`, left: `${(100 - triangleWidth) / 2}%` }}>
+        <span className="triangle-base-label">{formatCalculatorValue(safeBase)} mm</span><span className="triangle-height-label">{formatCalculatorValue(safeHeight)} mm</span><span className="triangle-hypotenuse-label">{lang === "th" ? "ทแยง" : "HYP"} {formatCalculatorValue(hypotenuse)} mm</span><i className="right-angle"/>
+      </div>
+      <span className="triangle-angle">θ = {formatCalculatorValue(angle)}°</span>
     </div>
-    <p>{lang === "th" ? "สีน้ำเงิน = มุม θ · แนวนอน = cos · แนวตั้ง = sin · สีส้ม = tan" : "Blue = angle θ · horizontal = cos · vertical = sin · orange = tan"}</p>
+    <div className="triangle-results"><div className="primary"><span>{lang === "th" ? "ด้านทแยง" : "Hypotenuse"}</span><strong>{formatCalculatorValue(hypotenuse)} <small>mm</small></strong></div><div><span>{lang === "th" ? "มุม θ" : "Angle θ"}</span><strong>{formatCalculatorValue(angle)}°</strong></div><div><span>{lang === "th" ? "มุมที่เหลือ" : "Other angle"}</span><strong>{formatCalculatorValue(otherAngle)}°</strong></div></div>
+    <div className="trig-values">{([["sin", sine], ["cos", cosine], ["tan", tangent]] as const).map(([name, value]) => <div key={name}><span>{name} θ</span><strong>{Number.isFinite(value) ? formatCalculatorValue(value) : "∞"}</strong></div>)}</div>
+    <p>{lang === "th" ? "c = √(ฐาน² + สูง²) · θ = atan(สูง ÷ ฐาน)" : "c = √(base² + height²) · θ = atan(height ÷ base)"}</p>
   </div>;
 }
 
@@ -455,7 +429,7 @@ export default function Home() {
     const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
-      const workerUrl = new URL("sw.js?v=13", window.location.href);
+      const workerUrl = new URL("sw.js?v=14", window.location.href);
       navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
     }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
