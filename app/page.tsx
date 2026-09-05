@@ -84,7 +84,7 @@ function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
 }
 
 const ui: Record<string, Bi> = {
-  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 12", "ENGINEERING CALCULATOR · REV 12"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
+  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 13", "ENGINEERING CALCULATOR · REV 13"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
 };
 
 const airStandardOptions: Record<number, { name: Bi; bores: Record<number, number> }> = {
@@ -314,6 +314,64 @@ function formatCalculatorValue(value: number) {
   return Number(value.toPrecision(12)).toLocaleString("en-US", { maximumFractionDigits: 10 });
 }
 
+function findTrigCall(expression: string) {
+  const match = /\b(asin|acos|atan|sin|cos|tan)\s*\(/i.exec(expression);
+  if (!match) return null;
+  const opening = expression.indexOf("(", match.index);
+  let depth = 0;
+  for (let index = opening; index < expression.length; index += 1) {
+    if (expression[index] === "(") depth += 1;
+    if (expression[index] === ")") {
+      depth -= 1;
+      if (depth === 0) return { name: match[1].toLowerCase(), argument: expression.slice(opening + 1, index) };
+    }
+  }
+  return null;
+}
+
+function TrigVisual({ expression, angleMode, ans, lang }: { expression: string; angleMode: AngleMode; ans: number; lang: Lang }) {
+  const visual = useMemo(() => {
+    const call = findTrigCall(expression);
+    let degrees = 30;
+    let active = "sin";
+    try {
+      if (call) {
+        active = call.name.replace(/^a/, "");
+        if (call.name.startsWith("a")) {
+          const result = evaluateExpression(`${call.name}(${call.argument})`, angleMode, ans);
+          degrees = angleMode === "DEG" ? result : result * 180 / Math.PI;
+        } else {
+          const argument = evaluateExpression(call.argument, angleMode, ans);
+          degrees = angleMode === "DEG" ? argument : argument * 180 / Math.PI;
+        }
+      }
+    } catch { /* Keep the reference angle while an expression is incomplete. */ }
+    const normalized = ((degrees % 360) + 360) % 360;
+    const radians = normalized * Math.PI / 180;
+    const sine = Math.sin(radians), cosine = Math.cos(radians), tangent = Math.tan(radians);
+    const radius = 34, pointLeft = 50 + cosine * radius, pointTop = 50 - sine * radius;
+    const tangentVisual = Math.max(-2.4, Math.min(2.4, tangent));
+    return { degrees, normalized, sine, cosine, tangent, active, pointLeft, pointTop, tangentTop: 50 - tangentVisual * radius };
+  }, [expression, angleMode, ans]);
+  const aria = lang === "th" ? `ภาพวงกลมหนึ่งหน่วย มุม ${visual.degrees.toFixed(1)} องศา` : `Unit circle at ${visual.degrees.toFixed(1)} degrees`;
+  return <div className="trig-visual" role="img" aria-label={aria}>
+    <div className="trig-visual-header"><div><span>{lang === "th" ? "ภาพตรีโกณมิติ" : "TRIG VISUAL"}</span><strong>{lang === "th" ? "วงกลมหนึ่งหน่วย" : "Unit circle"}</strong></div><em>LIVE</em></div>
+    <div className="unit-circle-stage">
+      <div className="trig-axis trig-axis-x"/><div className="trig-axis trig-axis-y"/><div className="unit-circle"/>
+      <div className="trig-ray" style={{ transform: `rotate(${-visual.normalized}deg)` }}/>
+      <div className="trig-projection trig-cos-line" style={{ left: `${Math.min(50, visual.pointLeft)}%`, top: `${visual.pointTop}%`, width: `${Math.abs(visual.pointLeft - 50)}%` }}/>
+      <div className="trig-projection trig-sin-line" style={{ left: `${visual.pointLeft}%`, top: `${Math.min(50, visual.pointTop)}%`, height: `${Math.abs(visual.pointTop - 50)}%` }}/>
+      <div className="trig-tangent" style={{ top: `${Math.min(50, visual.tangentTop)}%`, height: `${Math.abs(visual.tangentTop - 50)}%` }}/>
+      <div className="trig-point" style={{ left: `${visual.pointLeft}%`, top: `${visual.pointTop}%` }}/>
+      <span className="trig-angle">θ {visual.degrees.toFixed(1)}°</span><span className="axis-label axis-zero">0°</span><span className="axis-label axis-ninety">90°</span><span className="axis-label axis-one-eighty">180°</span>
+    </div>
+    <div className="trig-values">
+      {([["sin", visual.sine], ["cos", visual.cosine], ["tan", visual.tangent]] as const).map(([name, value]) => <div className={visual.active === name ? "active" : ""} key={name}><span>{name} θ</span><strong>{Math.abs(value) > 1e8 ? "∞" : formatCalculatorValue(value)}</strong></div>)}
+    </div>
+    <p>{lang === "th" ? "สีน้ำเงิน = มุม θ · แนวนอน = cos · แนวตั้ง = sin · สีส้ม = tan" : "Blue = angle θ · horizontal = cos · vertical = sin · orange = tan"}</p>
+  </div>;
+}
+
 function ScientificCalculator({ lang, exportLabel }: { lang: Lang; exportLabel: string }) {
   const [expression, setExpression] = useState("sin(30)"), [angleMode, setAngleMode] = useState<AngleMode>("DEG"), [ans, setAns] = useState(.5), [memory, setMemory] = useState(0), [history, setHistory] = useState<Array<{ expression: string; result: number }>>([]), [copied, setCopied] = useState(false);
   const preview = useMemo(() => { try { return { value: evaluateExpression(expression, angleMode, ans), error: "" }; } catch (error) { return { value: NaN, error: error instanceof Error ? error.message : "Invalid expression" }; } }, [expression, angleMode, ans]);
@@ -352,7 +410,7 @@ function ScientificCalculator({ lang, exportLabel }: { lang: Lang; exportLabel: 
         <div className="calculator-actions no-print"><button className="secondary-button" onClick={copyResult}>{copied ? (lang === "th" ? "คัดลอกแล้ว ✓" : "Copied ✓") : (lang === "th" ? "คัดลอกคำตอบ" : "Copy result")}</button><button className="primary-button" onClick={calculateNow}>{lang === "th" ? "คำนวณ" : "Calculate"}</button></div>
         <p className="calculator-hint">{lang === "th" ? "พิมพ์สมการได้โดยตรง • Enter เพื่อคำนวณ • Esc เพื่อล้าง" : "Type an expression directly • Enter to calculate • Esc to clear"}</p>
       </div>
-      <aside className="calculator-side glass-card"><div className="constant-card"><span>{lang === "th" ? "ค่าคงที่" : "CONSTANTS"}</span><button onClick={() => append("π")}><strong>π</strong><small>3.141592653589793</small></button><button onClick={() => append("e")}><strong>e</strong><small>2.718281828459045</small></button><button onClick={() => append("Ans")}><strong>Ans</strong><small>{formatCalculatorValue(ans)}</small></button></div><div className="history-card"><div><span>{lang === "th" ? "ประวัติ" : "HISTORY"}</span>{history.length > 0 && <button className="no-print" onClick={() => setHistory([])}>{lang === "th" ? "ล้าง" : "Clear"}</button>}</div>{history.length === 0 ? <p>{lang === "th" ? "คำตอบที่คำนวณแล้วจะแสดงที่นี่" : "Completed calculations appear here."}</p> : history.map((item, index) => <button key={`${item.expression}-${index}`} onClick={() => { setExpression(item.expression); setAns(item.result); }}><span>{item.expression}</span><strong>= {formatCalculatorValue(item.result)}</strong></button>)}</div><div className="supported-card"><span>{lang === "th" ? "รองรับ" : "SUPPORTED"}</span><p>sin · cos · tan · inverse · hyperbolic</p><p>ln · log₁₀ · √ · ∛ · xʸ · x! · mod · %</p><p>π · e · Ans · DEG / RAD · Memory</p></div></aside>
+      <aside className="calculator-side glass-card"><TrigVisual expression={expression} angleMode={angleMode} ans={ans} lang={lang}/><div className="constant-card"><span>{lang === "th" ? "ค่าคงที่" : "CONSTANTS"}</span><button onClick={() => append("π")}><strong>π</strong><small>3.141592653589793</small></button><button onClick={() => append("e")}><strong>e</strong><small>2.718281828459045</small></button><button onClick={() => append("Ans")}><strong>Ans</strong><small>{formatCalculatorValue(ans)}</small></button></div><div className="history-card"><div><span>{lang === "th" ? "ประวัติ" : "HISTORY"}</span>{history.length > 0 && <button className="no-print" onClick={() => setHistory([])}>{lang === "th" ? "ล้าง" : "Clear"}</button>}</div>{history.length === 0 ? <p>{lang === "th" ? "คำตอบที่คำนวณแล้วจะแสดงที่นี่" : "Completed calculations appear here."}</p> : history.map((item, index) => <button key={`${item.expression}-${index}`} onClick={() => { setExpression(item.expression); setAns(item.result); }}><span>{item.expression}</span><strong>= {formatCalculatorValue(item.result)}</strong></button>)}</div><div className="supported-card"><span>{lang === "th" ? "รองรับ" : "SUPPORTED"}</span><p>sin · cos · tan · inverse · hyperbolic</p><p>ln · log₁₀ · √ · ∛ · xʸ · x! · mod · %</p><p>π · e · Ans · DEG / RAD · Memory</p></div></aside>
     </div>
   </section>;
 }
@@ -397,7 +455,7 @@ export default function Home() {
     const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
-      const workerUrl = new URL("sw.js?v=12", window.location.href);
+      const workerUrl = new URL("sw.js?v=13", window.location.href);
       navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
     }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
