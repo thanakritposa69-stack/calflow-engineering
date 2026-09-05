@@ -20,7 +20,7 @@ test("server-renders the CalFlow calculator", async () => {
   const html = await response.text();
   assert.match(html, /<title>CalFlow — Engineering Calculator<\/title>/i);
   assert.match(html, /คำนวณงานวิศวกรรม/);
-  assert.match(html, /REV 10/);
+  assert.match(html, /REV 11/);
   assert.match(html, /general-mini-visual/);
   assert.equal((html.match(/general-mini-visual/g) ?? []).length, 14);
   assert.match(html, /Thanakrit Posa/);
@@ -29,6 +29,8 @@ test("server-renders the CalFlow calculator", async () => {
   assert.match(html, /สายพานลำเลียง/);
   assert.match(html, /สายพานเรียบ/);
   assert.match(html, /เครื่องคำนวณใช้งานทั่วไป/);
+  assert.match(html, /เครื่องคิดเลข/);
+  assert.match(html, /ตรีโกณและวิศวกรรม/);
   assert.match(html, /แรงบิดมอเตอร์/);
   assert.match(html, /T = 9,550 × P ÷ n/);
   assert.match(html, /736\.6/);
@@ -44,7 +46,7 @@ test("server-renders the CalFlow calculator", async () => {
 
 test("service worker forces installed-app updates", async () => {
   const source = await fs.readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(source, /calflow-v10/);
+  assert.match(source, /calflow-v11/);
   assert.match(source, /skipWaiting/);
   assert.match(source, /clients\.claim/);
   assert.match(source, /client\.navigate\(client\.url\)/);
@@ -57,4 +59,13 @@ test("includes live graphics for every engineering module", async () => {
   assert.match(source, /Dynamic operating graphic/);
   assert.match(source, /EngineeringVisual module=\{active\}/);
   assert.match(source, /GeneralMiniVisual id=\{card\.id\}/);
+});
+
+test("includes a safe full scientific calculator", async () => {
+  const source = await fs.readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(source, /function evaluateExpression/);
+  assert.match(source, /ScientificCalculator/);
+  assert.match(source, /Factorial requires an integer from 0 to 170/);
+  assert.match(source, /sin.*cos.*tan/);
+  assert.doesNotMatch(source, /\beval\s*\(|new Function\s*\(/);
 });

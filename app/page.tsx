@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-type ModuleId = "general" | "air" | "belt" | "flat" | "chain" | "bucket" | "screw";
+type ModuleId = "general" | "scientific" | "air" | "belt" | "flat" | "chain" | "bucket" | "screw";
 type Lang = "th" | "en";
 type NumericFields = Record<string, number>;
 type Bi = [th: string, en: string];
@@ -13,6 +13,7 @@ const tr = (text: Bi, lang: Lang) => text[lang === "th" ? 0 : 1];
 
 const modules: Array<{ id: ModuleId; label: Bi; short: Bi; symbol: string }> = [
   { id: "general", label: ["คำนวณทั่วไป", "General Calculators"], short: ["สูตรใช้งานประจำ", "Everyday formulas"], symbol: "+" },
+  { id: "scientific", label: ["เครื่องคิดเลข", "Scientific Calculator"], short: ["ตรีโกณและวิศวกรรม", "Trig & engineering"], symbol: "ƒx" },
   { id: "air", label: ["กระบอกลม", "Air Cylinder"], short: ["ระบบนิวเมติก", "Pneumatic"], symbol: "◎" },
   { id: "belt", label: ["สายพานลำเลียง", "Belt Conveyor"], short: ["วัสดุเทกอง", "Bulk handling"], symbol: "⌁" },
   { id: "flat", label: ["สายพานเรียบ", "Flat Belt"], short: ["ลำเลียงกระสอบ", "Bag transport"], symbol: "▱" },
@@ -23,6 +24,7 @@ const modules: Array<{ id: ModuleId; label: Bi; short: Bi; symbol: string }> = [
 
 const defaults: Record<ModuleId, NumericFields> = {
   general: {},
+  scientific: {},
   air: { bore: 20, rod: 8, flow: 10, pressure: 4 },
   belt: { capacity: 50, density: 2.16, selectedWidth: 500, materialAngle: 35, troughAngle: 35, slopeCoefficient: 0.85, speed: 1.055, carryIdler: 16, returnIdler: 11.4, carryPitch: 1.2, returnPitch: 3, length: 98, coefficient: 1.8, friction: 0.02, gravity: 9.81, efficiency: 0.8 },
   flat: { length: 7000, angle: 30, throughput: 800, bagLength: 1000, gap: 0, bagWeight: 25, pulleyDiameter: 165, friction: 0.05, gearEfficiency: 0.9, startupFactor: 1.5, serviceFactor: 1.2, motorRpm: 1450, driveTeeth: 15, drivenTeeth: 45, gearboxRatio: 18.79 },
@@ -35,6 +37,7 @@ const f = (key: string, th: string, en: string, unit: string, step?: number): Fi
 const standardBeltWidths = [300, 400, 500, 600, 650, 750, 800, 900, 1000, 1050, 1200, 1350, 1400, 1500, 1600, 1800, 2000, 2200, 2400];
 const fieldConfig: Record<ModuleId, Field[]> = {
   general: [],
+  scientific: [],
   air: [f("bore", "ขนาดกระบอก", "Bore size", "mm"), f("rod", "ขนาดก้าน", "Rod size", "mm"), f("flow", "อัตราการไหล", "Air flow", "L/min", .1), f("pressure", "แรงดัน", "Pressure", "bar", .1)],
   belt: [f("capacity", "กำลังลำเลียง", "Capacity", "t/h"), f("density", "ความหนาแน่นวัสดุ", "Material density", "t/m³", .01), { key: "selectedWidth", label: ["ความกว้างสายพานที่เลือก", "Selected belt width"], unit: "mm", options: standardBeltWidths }, f("materialAngle", "มุมกองวัสดุ", "Material angle", "deg"), f("troughAngle", "มุมราง", "Trough angle", "deg"), f("slopeCoefficient", "ตัวคูณความลาด", "Slope coefficient", "k", .01), f("speed", "ความเร็วสายพาน", "Belt speed", "m/s", .001), f("carryIdler", "มวลลูกกลิ้งขาไป", "Carry idler mass", "kg/set", .1), f("returnIdler", "มวลลูกกลิ้งขากลับ", "Return idler mass", "kg/set", .1), f("carryPitch", "พิทช์ลูกกลิ้งขาไป", "Carry idler pitch", "m", .1), f("returnPitch", "พิทช์ลูกกลิ้งขากลับ", "Return idler pitch", "m", .1), f("length", "ความยาวสายพาน", "Conveyor length", "m", .1), f("coefficient", "สัมประสิทธิ์ความต้านทาน", "Resistance coefficient", "C", .1), f("friction", "แรงเสียดทานลูกกลิ้ง", "Idler friction", "f", .001), f("efficiency", "ประสิทธิภาพชุดขับ", "Drive efficiency", "η", .01)],
   flat: [f("length", "ความยาวสายพาน", "Belt length", "mm"), f("angle", "มุมเอียง", "Incline angle", "deg", .1), f("throughput", "อัตราการผลิต", "Production rate", "bags/h"), f("bagLength", "ความยาวกระสอบ", "Bag length", "mm"), f("gap", "ระยะห่างกระสอบ", "Bag spacing", "mm"), f("bagWeight", "น้ำหนักต่อกระสอบ", "Bag weight", "kg", .1), f("pulleyDiameter", "เส้นผ่านศูนย์กลางพูลเลย์", "Pulley diameter", "mm", .1), f("friction", "สัมประสิทธิ์แรงเสียดทาน", "Friction coefficient", "μ", .01), f("motorRpm", "รอบมอเตอร์", "Motor speed", "rpm"), f("gearboxRatio", "อัตราทดเกียร์ที่เลือก", "Selected gearbox ratio", ":1", .01), f("driveTeeth", "จำนวนฟันเฟืองขับ", "Drive sprocket teeth", "T"), f("drivenTeeth", "จำนวนฟันเฟืองตาม", "Driven sprocket teeth", "T"), f("gearEfficiency", "ประสิทธิภาพเกียร์", "Gear efficiency", "η", .01), f("startupFactor", "ตัวคูณตอนสตาร์ท", "Startup factor", "SF", .1), f("serviceFactor", "ตัวคูณการใช้งาน", "Service factor", "SF", .1)],
@@ -51,6 +54,7 @@ const nextMotor = (kw: number) => motorRatings.find((rating) => rating >= kw) ??
 function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
   const T = (th: string, en: string) => tr([th, en], lang);
   if (module === "general") return { headline: [T("เครื่องคำนวณทั่วไป", "General calculators"), 14, "tools", 0] as const, metrics: [] as const, formula: "", status: T("พร้อมใช้งาน", "Ready"), healthy: true };
+  if (module === "scientific") return { headline: [T("เครื่องคิดเลขวิทยาศาสตร์", "Scientific calculator"), 0, "", 0] as const, metrics: [] as const, formula: "", status: T("พร้อมใช้งาน", "Ready"), healthy: true };
   if (module === "air") {
     const area = Math.PI * (x.bore / 10) ** 2 / 4, rodArea = Math.PI * (x.rod / 10) ** 2 / 4, speed = x.flow * 10000 / (area * 60);
     return { headline: [T("ความเร็วลูกสูบ", "Piston speed"), speed, "mm/s", 1] as const, metrics: [[T("พื้นที่ลูกสูบ", "Piston area"), area, "cm²", 2], [T("ความเร็ว", "Speed"), speed * 60 / 1000, "m/min", 2], [T("แรงดันออก", "Push force"), area * x.pressure * 1.019716213, "kgf", 1], [T("แรงดึงกลับ", "Pull force"), Math.max(area - rodArea, 0) * x.pressure * 1.019716213, "kgf", 1]] as const, formula: "v = Q × 10,000 ÷ (A × 60)", status: x.rod < x.bore ? T("พร้อมใช้งาน", "Ready") : T("ก้านต้องเล็กกว่ากระบอก", "Rod must be smaller than bore"), healthy: x.rod < x.bore };
@@ -80,10 +84,10 @@ function calculate(module: ModuleId, x: NumericFields, lang: Lang) {
 }
 
 const ui: Record<string, Bi> = {
-  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 10", "ENGINEERING CALCULATOR · REV 10"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
+  verified: ["ตรวจสอบสูตรแล้ว", "Formula verified"], install: ["ดาวน์โหลดแอป", "Download App"], update: ["อัปเดตแอป", "Update App"], updating: ["กำลังอัปเดต…", "Updating…"], eyebrow: ["เครื่องคำนวณวิศวกรรม · REV 11", "ENGINEERING CALCULATOR · REV 11"], title1: ["คำนวณงานวิศวกรรม", "Engineering math,"], title2: ["ชัดเจนทุกขั้นตอน", "clearly."], inputs: ["ข้อมูลนำเข้า", "INPUTS"], reset: ["ค่าเริ่มต้น", "Reset"], results: ["ผลการคำนวณ", "CALCULATION RESULTS"], formula: ["สูตรที่ใช้", "Formula used"], note: ["รายงาน PDF จะรวมข้อมูลนำเข้า ผลลัพธ์ และสูตรนี้", "The PDF report includes inputs, results, and this formula."], export: ["ส่งออก PDF", "Export PDF"], copy: ["คัดลอกผลลัพธ์", "Copy results"], copied: ["คัดลอกแล้ว ✓", "Copied ✓"], report: ["รายงานการคำนวณ CalFlow", "CalFlow calculation report"],
 };
 
-function EngineeringVisual({ module, values, lang }: { module: Exclude<ModuleId, "general">; values: NumericFields; lang: Lang }) {
+function EngineeringVisual({ module, values, lang }: { module: Exclude<ModuleId, "general" | "scientific">; values: NumericFields; lang: Lang }) {
   const label = lang === "th" ? "ภาพการทำงานแบบไดนามิก" : "Dynamic operating graphic";
   const frame = (graphic: ReactNode, badges: ReactNode) => <div className={`engineering-visual visual-${module}`} role="img" aria-label={label}><div className="visual-topline"><span><i />{label}</span><small>LIVE</small></div>{graphic}<div className="visual-badges">{badges}</div></div>;
   if (module === "air") {
@@ -168,6 +172,167 @@ function GeneralMiniVisual({ id, values, value }: { id: string; values: NumericF
   return wrap(<svg viewBox="0 0 280 90"><defs><linearGradient id={`volume-fill-${id}`} x1="0" x2="0" y1="0" y2="1"><stop stopColor="#54a9ff"/><stop offset="1" stopColor="#087af6"/></linearGradient></defs><rect className="mini-volume-fill" x="69" y={fillY} width="142" height={fillHeight} rx="8" fill={`url(#volume-fill-${id})`} opacity=".3"/><g fill="rgba(240,246,252,.72)" stroke="#66798b" strokeWidth="4" strokeLinejoin="round">{shape}</g><path className="mini-wave" d={`M76 ${fillY + 8}q16-8 32 0t32 0 32 0 32 0`} fill="none" stroke="#1387ff" strokeWidth="3"/></svg>);
 }
 
+type AngleMode = "DEG" | "RAD";
+type CalcToken = { type: "number" | "ident" | "op" | "left" | "right"; value: string };
+
+const calcFunctions = new Set(["sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "sqrt", "cbrt", "ln", "log", "exp", "abs", "floor", "ceil", "round"]);
+
+function tokenizeExpression(source: string): CalcToken[] {
+  const input = source.replaceAll("×", "*").replaceAll("÷", "/").replaceAll("−", "-").replaceAll("√", "sqrt");
+  const tokens: CalcToken[] = [];
+  let index = 0;
+  while (index < input.length) {
+    const rest = input.slice(index);
+    if (/^\s/.test(rest)) { index += 1; continue; }
+    const number = rest.match(/^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/i);
+    if (number) { tokens.push({ type: "number", value: number[0] }); index += number[0].length; continue; }
+    const ident = rest.match(/^[a-zA-Zπ]+/);
+    if (ident) { tokens.push({ type: "ident", value: ident[0].toLowerCase() }); index += ident[0].length; continue; }
+    const char = input[index];
+    if ("+-*/^!%".includes(char)) tokens.push({ type: "op", value: char });
+    else if (char === "(") tokens.push({ type: "left", value: char });
+    else if (char === ")") tokens.push({ type: "right", value: char });
+    else throw new Error(`Unsupported character: ${char}`);
+    index += 1;
+  }
+  return tokens;
+}
+
+function evaluateExpression(source: string, angleMode: AngleMode, ans: number) {
+  if (!source.trim()) return 0;
+  const tokens = tokenizeExpression(source);
+  let index = 0;
+  const peek = () => tokens[index];
+  const take = () => tokens[index++];
+  const radians = (value: number) => angleMode === "DEG" ? value * Math.PI / 180 : value;
+  const fromRadians = (value: number) => angleMode === "DEG" ? value * 180 / Math.PI : value;
+  const applyFunction = (name: string, value: number) => {
+    const functions: Record<string, (x: number) => number> = {
+      sin: (x) => Math.sin(radians(x)), cos: (x) => Math.cos(radians(x)), tan: (x) => Math.tan(radians(x)),
+      asin: (x) => fromRadians(Math.asin(x)), acos: (x) => fromRadians(Math.acos(x)), atan: (x) => fromRadians(Math.atan(x)),
+      sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, sqrt: Math.sqrt, cbrt: Math.cbrt,
+      ln: Math.log, log: Math.log10, exp: Math.exp, abs: Math.abs, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+    };
+    const result = functions[name](value);
+    if (!Number.isFinite(result)) throw new Error("Result is outside the valid range");
+    return result;
+  };
+  const factorial = (value: number) => {
+    if (!Number.isInteger(value) || value < 0 || value > 170) throw new Error("Factorial requires an integer from 0 to 170");
+    let result = 1;
+    for (let n = 2; n <= value; n += 1) result *= n;
+    return result;
+  };
+  const parsePrimary = (): number => {
+    const token = take();
+    if (!token) throw new Error("Incomplete expression");
+    if (token.type === "number") return Number(token.value);
+    if (token.type === "left") {
+      const value = parseExpression();
+      if (take()?.type !== "right") throw new Error("Missing closing parenthesis");
+      return value;
+    }
+    if (token.type === "ident") {
+      if (token.value === "pi" || token.value === "π") return Math.PI;
+      if (token.value === "e") return Math.E;
+      if (token.value === "ans") return ans;
+      if (!calcFunctions.has(token.value) || take()?.type !== "left") throw new Error(`Unknown function: ${token.value}`);
+      const value = parseExpression();
+      if (take()?.type !== "right") throw new Error("Missing closing parenthesis");
+      return applyFunction(token.value, value);
+    }
+    throw new Error("Expected a number or function");
+  };
+  const parsePostfix = () => {
+    let value = parsePrimary();
+    while (peek()?.type === "op" && ["!", "%"].includes(peek().value)) value = take().value === "!" ? factorial(value) : value / 100;
+    return value;
+  };
+  const parsePower = (): number => {
+    const value = parsePostfix();
+    return peek()?.value === "^" ? Math.pow(value, (take(), parseUnary())) : value;
+  };
+  const parseUnary = (): number => {
+    if (peek()?.value === "+") { take(); return parseUnary(); }
+    if (peek()?.value === "-") { take(); return -parseUnary(); }
+    return parsePower();
+  };
+  const startsPrimary = (token?: CalcToken) => token?.type === "number" || token?.type === "ident" || token?.type === "left";
+  const parseTerm = () => {
+    let value = parseUnary();
+    while (peek()) {
+      if (peek().type === "op" && ["*", "/"].includes(peek().value)) {
+        const operator = take().value, right = parseUnary();
+        value = operator === "*" ? value * right : value / right;
+      } else if (peek().type === "ident" && peek().value === "mod") {
+        take(); value %= parseUnary();
+      } else if (startsPrimary(peek())) value *= parseUnary();
+      else break;
+    }
+    return value;
+  };
+  const parseExpression = () => {
+    let value = parseTerm();
+    while (peek()?.type === "op" && ["+", "-"].includes(peek().value)) {
+      const operator = take().value, right = parseTerm();
+      value = operator === "+" ? value + right : value - right;
+    }
+    return value;
+  };
+  const value = parseExpression();
+  if (index !== tokens.length || !Number.isFinite(value)) throw new Error("Invalid expression");
+  return value;
+}
+
+function formatCalculatorValue(value: number) {
+  const absolute = Math.abs(value);
+  if ((absolute >= 1e12 || (absolute > 0 && absolute < 1e-9))) return value.toExponential(8);
+  return Number(value.toPrecision(12)).toLocaleString("en-US", { maximumFractionDigits: 10 });
+}
+
+function ScientificCalculator({ lang, exportLabel }: { lang: Lang; exportLabel: string }) {
+  const [expression, setExpression] = useState("sin(30)"), [angleMode, setAngleMode] = useState<AngleMode>("DEG"), [ans, setAns] = useState(.5), [memory, setMemory] = useState(0), [history, setHistory] = useState<Array<{ expression: string; result: number }>>([]), [copied, setCopied] = useState(false);
+  const preview = useMemo(() => { try { return { value: evaluateExpression(expression, angleMode, ans), error: "" }; } catch (error) { return { value: NaN, error: error instanceof Error ? error.message : "Invalid expression" }; } }, [expression, angleMode, ans]);
+  const append = (text: string) => setExpression((current) => current === "0" ? text : current + text);
+  const clear = () => setExpression("");
+  const calculateNow = () => {
+    if (preview.error || !expression.trim()) return;
+    setAns(preview.value);
+    setHistory((current) => [{ expression, result: preview.value }, ...current.filter((item) => item.expression !== expression)].slice(0, 8));
+    setExpression(String(Number(preview.value.toPrecision(14))));
+  };
+  const copyResult = async () => {
+    if (preview.error) return;
+    await navigator.clipboard.writeText(`${expression} = ${formatCalculatorValue(preview.value)}`);
+    setCopied(true); window.setTimeout(() => setCopied(false), 1500);
+  };
+  const functions = [["sin", "sin("], ["cos", "cos("], ["tan", "tan("], ["sin⁻¹", "asin("], ["cos⁻¹", "acos("], ["tan⁻¹", "atan("], ["sinh", "sinh("], ["cosh", "cosh("], ["tanh", "tanh("], ["ln", "ln("], ["log₁₀", "log("], ["√", "sqrt("], ["∛", "cbrt("], ["|x|", "abs("], ["eˣ", "exp("], ["x!", "!"], ["x²", "square"], ["1/x", "reciprocal"]] as const;
+  const keypad = [["7", "7"], ["8", "8"], ["9", "9"], ["÷", "÷"], ["AC", "clear"], ["4", "4"], ["5", "5"], ["6", "6"], ["×", "×"], ["⌫", "back"], ["1", "1"], ["2", "2"], ["3", "3"], ["−", "−"], ["(", "("], ["0", "0"], [".", "."], ["π", "π"], ["+", "+"], [")", ")"], ["Ans", "Ans"], ["e", "e"], ["%", "%"], ["xʸ", "^"], ["=", "equals"]] as const;
+  const press = (action: string) => {
+    if (action === "clear") clear();
+    else if (action === "back") setExpression((current) => current.slice(0, -1));
+    else if (action === "equals") calculateNow();
+    else if (action === "square") setExpression((current) => `(${current || 0})^2`);
+    else if (action === "reciprocal") setExpression((current) => `1/(${current || 0})`);
+    else append(action);
+  };
+  return <section className="scientific-section" aria-live="polite">
+    <div className="scientific-heading glass-card"><div><span className="section-kicker">SCIENTIFIC & ENGINEERING</span><h2>{lang === "th" ? "เครื่องคิดเลขวิทยาศาสตร์" : "Scientific calculator"}</h2><p>{lang === "th" ? "คำนวณตรีโกณมิติ ลอการิทึม ยกกำลัง ราก แฟกทอเรียล และสมการหลายขั้นตอน" : "Trigonometry, logarithms, powers, roots, factorials, and multi-step expressions."}</p></div><button className="general-export no-print" onClick={() => window.print()}>{exportLabel} ↓</button></div>
+    <div className="scientific-layout">
+      <div className="calculator-shell glass-card">
+        <div className="calculator-toolbar"><div className="angle-switch" aria-label={lang === "th" ? "หน่วยมุม" : "Angle unit"}><button className={angleMode === "DEG" ? "active" : ""} onClick={() => setAngleMode("DEG")}>DEG</button><button className={angleMode === "RAD" ? "active" : ""} onClick={() => setAngleMode("RAD")}>RAD</button></div><span className="memory-indicator">M = {formatCalculatorValue(memory)}</span></div>
+        <div className="calculator-display"><label htmlFor="engineering-expression">{lang === "th" ? "สมการ" : "Expression"}</label><input id="engineering-expression" value={expression} onChange={(event) => setExpression(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); calculateNow(); } else if (event.key === "Escape") clear(); }} placeholder="sin(30) + sqrt(16)" autoComplete="off" spellCheck={false}/><div className={preview.error ? "calculator-result error" : "calculator-result"}><small>{preview.error ? (lang === "th" ? "ตรวจสอบสมการ" : "Check expression") : "="}</small><strong>{preview.error ? "—" : formatCalculatorValue(preview.value)}</strong></div></div>
+        <div className="memory-row no-print"><button onClick={() => setMemory(0)}>MC</button><button onClick={() => append(memory < 0 ? `(${memory})` : String(memory))}>MR</button><button onClick={() => !preview.error && setMemory((value) => value + preview.value)}>M+</button><button onClick={() => !preview.error && setMemory((value) => value - preview.value)}>M−</button><button onClick={() => setExpression((current) => `-(${current || 0})`)}>±</button><button onClick={() => append(" mod ")}>mod</button></div>
+        <div className="function-grid no-print">{functions.map(([label, action]) => <button key={label} onClick={() => press(action)}>{label}</button>)}</div>
+        <div className="calculator-keypad no-print">{keypad.map(([label, action]) => <button key={label} className={action === "equals" ? "equals" : ["÷", "×", "−", "+", "^"].includes(action) ? "operator" : action === "clear" || action === "back" ? "utility" : ""} onClick={() => press(action)}>{label}</button>)}</div>
+        <div className="calculator-actions no-print"><button className="secondary-button" onClick={copyResult}>{copied ? (lang === "th" ? "คัดลอกแล้ว ✓" : "Copied ✓") : (lang === "th" ? "คัดลอกคำตอบ" : "Copy result")}</button><button className="primary-button" onClick={calculateNow}>{lang === "th" ? "คำนวณ" : "Calculate"}</button></div>
+        <p className="calculator-hint">{lang === "th" ? "พิมพ์สมการได้โดยตรง • Enter เพื่อคำนวณ • Esc เพื่อล้าง" : "Type an expression directly • Enter to calculate • Esc to clear"}</p>
+      </div>
+      <aside className="calculator-side glass-card"><div className="constant-card"><span>{lang === "th" ? "ค่าคงที่" : "CONSTANTS"}</span><button onClick={() => append("π")}><strong>π</strong><small>3.141592653589793</small></button><button onClick={() => append("e")}><strong>e</strong><small>2.718281828459045</small></button><button onClick={() => append("Ans")}><strong>Ans</strong><small>{formatCalculatorValue(ans)}</small></button></div><div className="history-card"><div><span>{lang === "th" ? "ประวัติ" : "HISTORY"}</span>{history.length > 0 && <button className="no-print" onClick={() => setHistory([])}>{lang === "th" ? "ล้าง" : "Clear"}</button>}</div>{history.length === 0 ? <p>{lang === "th" ? "คำตอบที่คำนวณแล้วจะแสดงที่นี่" : "Completed calculations appear here."}</p> : history.map((item, index) => <button key={`${item.expression}-${index}`} onClick={() => { setExpression(item.expression); setAns(item.result); }}><span>{item.expression}</span><strong>= {formatCalculatorValue(item.result)}</strong></button>)}</div><div className="supported-card"><span>{lang === "th" ? "รองรับ" : "SUPPORTED"}</span><p>sin · cos · tan · inverse · hyperbolic</p><p>ln · log₁₀ · √ · ∛ · xʸ · x! · mod · %</p><p>π · e · Ans · DEG / RAD · Memory</p></div></aside>
+    </div>
+  </section>;
+}
+
 function GeneralCalculators({ lang, exportLabel }: { lang: Lang; exportLabel: string }) {
   const [values, setValues] = useState<NumericFields>({ ...generalDefaults });
   const updateGeneral = (key: string, value: string) => setValues((current) => ({ ...current, [key]: Number(value) }));
@@ -208,7 +373,7 @@ export default function Home() {
     const reloadForUpdate = () => { if (!refreshing) { refreshing = true; window.location.reload(); } };
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("controllerchange", reloadForUpdate);
-      const workerUrl = new URL("sw.js?v=10", window.location.href);
+      const workerUrl = new URL("sw.js?v=11", window.location.href);
       navigator.serviceWorker.register(`${workerUrl.pathname}${workerUrl.search}`, { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => undefined);
     }
     const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
@@ -239,7 +404,7 @@ export default function Home() {
     <section className="hero" id="top"><div className="eyebrow">{U("eyebrow")}</div><h1>{U("title1")} <span>{U("title2")}</span></h1><div className="creator-credit"><span>{lang === "th" ? "ออกแบบและสร้างโดย" : "Designed & Created by"}</span><strong>Thanakrit Posa</strong></div></section>
     <nav className="module-dock">{modules.map((item) => <button key={item.id} className={active === item.id ? "module-button active" : "module-button"} onClick={() => setActive(item.id)}><span className="module-symbol">{item.symbol}</span><span><strong>{tr(item.label, lang)}</strong><small>{tr(item.short, lang)}</small></span></button>)}</nav>
     <div className="print-title"><strong>{U("report")}</strong><span>{tr(current.label, lang)}</span></div>
-    {active === "general" ? <GeneralCalculators lang={lang} exportLabel={U("export")} /> : <section className="workspace" aria-live="polite"><div className="input-panel glass-card"><div className="panel-heading"><div><span className="section-kicker">{U("inputs")}</span><h2>{tr(current.label, lang)}</h2></div><button className="text-button no-print" onClick={() => setInputs((state) => ({ ...state, [active]: { ...defaults[active] } }))}>{U("reset")}</button></div><div className="input-grid">{fieldConfig[active].map((field) => <label className="field" key={field.key}><span>{tr(field.label, lang)}</span><div className="field-control">{field.options ? <select aria-label={tr(field.label, lang)} value={inputs[active][field.key]} onChange={(event) => update(field.key, event.target.value)}>{field.options.map((option) => <option value={option} key={option}>{format(option, 0)}</option>)}</select> : <input aria-label={tr(field.label, lang)} type="number" step={field.step ?? 1} value={inputs[active][field.key]} onChange={(event) => update(field.key, event.target.value)} />}<em>{field.unit}</em></div></label>)}</div></div>
+    {active === "general" ? <GeneralCalculators lang={lang} exportLabel={U("export")} /> : active === "scientific" ? <ScientificCalculator lang={lang} exportLabel={U("export")} /> : <section className="workspace" aria-live="polite"><div className="input-panel glass-card"><div className="panel-heading"><div><span className="section-kicker">{U("inputs")}</span><h2>{tr(current.label, lang)}</h2></div><button className="text-button no-print" onClick={() => setInputs((state) => ({ ...state, [active]: { ...defaults[active] } }))}>{U("reset")}</button></div><div className="input-grid">{fieldConfig[active].map((field) => <label className="field" key={field.key}><span>{tr(field.label, lang)}</span><div className="field-control">{field.options ? <select aria-label={tr(field.label, lang)} value={inputs[active][field.key]} onChange={(event) => update(field.key, event.target.value)}>{field.options.map((option) => <option value={option} key={option}>{format(option, 0)}</option>)}</select> : <input aria-label={tr(field.label, lang)} type="number" step={field.step ?? 1} value={inputs[active][field.key]} onChange={(event) => update(field.key, event.target.value)} />}<em>{field.unit}</em></div></label>)}</div></div>
       <aside className="result-panel glass-card"><div className="result-header"><div><span className="section-kicker">{U("results")}</span><h2>{tr(current.label, lang)}</h2></div><span className="result-symbol">{current.symbol}</span></div><EngineeringVisual module={active} values={inputs[active]} lang={lang} /><p className="result-label">{headlineLabel}</p><div className="hero-result"><strong>{format(headlineValue, headlineDigits)}</strong><span>{headlineUnit}</span></div><div className={result.healthy ? "status-pill good" : "status-pill warning"}><i />{result.status}</div><div className="metric-list">{result.metrics.map(([label, value, unit, digits]) => <div className="metric-row" key={label}><span>{label}</span><strong>{format(value, digits)} <small>{unit}</small></strong></div>)}</div><div className="formula-card"><span>{U("formula")}</span><code>{result.formula}</code><p>{U("note")}</p></div><div className="result-actions no-print"><button className="secondary-button" onClick={copySummary}>{copied ? U("copied") : U("copy")}</button><button className="primary-button" onClick={exportPdf}>{U("export")} ↓</button></div></aside></section>}
     <section className="trust-strip"><div><strong>{lang === "th" ? "หน่วยถูกต้อง" : "Correct units"}</strong><span>SI conversion</span></div><div><strong>{lang === "th" ? "ตรวจสอบย้อนกลับ" : "Traceable logic"}</strong><span>{lang === "th" ? "แสดงสูตรในรายงาน" : "Formulas included in reports"}</span></div><div><strong>{lang === "th" ? "รองรับสองภาษา" : "Bilingual"}</strong><span>ไทย / English</span></div></section><footer><span>CalFlow Engineering Toolkit</span><span className="footer-credit">Designed & Created by <strong>Thanakrit Posa</strong> · 2026</span></footer>
   </main>;
