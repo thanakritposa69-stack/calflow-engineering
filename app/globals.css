@@ -14,7 +14,7 @@ main { min-height:100vh; overflow:hidden; position:relative; padding:0 28px; bac
 .brand { display:flex; gap:10px; align-items:center; text-decoration:none; color:var(--ink); font-size:18px; font-weight:680; letter-spacing:-.02em; }
 .brand-mark { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; color:white; font-size:16px; font-weight:760; background:linear-gradient(145deg,#4aa1ff,#0068e8 65%,#0052bd); box-shadow:0 8px 18px rgba(0,106,232,.24),inset 0 1px rgba(255,255,255,.5); }
 .topbar-credit { padding-left:15px; border-left:1px solid var(--line); display:flex; align-items:baseline; gap:5px; color:#858b96; font-size:9px; white-space:nowrap; }
-.topbar-credit strong { color:#414750; font-size:10px; font-weight:720; }.topbar-credit em { color:#0873e5; font-size:8px; font-style:normal; font-weight:780; letter-spacing:.08em; }
+.topbar-credit strong { color:#414750; font-size:10px; font-weight:720; }
 .topbar-meta { display:flex; align-items:center; gap:8px; color:#5f6570; font-size:13px; font-weight:590; }
 .top-actions { display:flex; align-items:center; gap:14px; }
 .install-button { height:34px; padding:0 13px; display:flex; align-items:center; gap:6px; border:0; border-radius:999px; color:white; background:linear-gradient(180deg,#1387ff,#0071e8); box-shadow:0 7px 16px rgba(0,113,232,.2); font-size:11px; font-weight:680; cursor:pointer; }
