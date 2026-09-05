@@ -1,4 +1,4 @@
-const CACHE = "calflow-v15";
+const CACHE = "calflow-v16";
 const BASE = new URL(self.registration.scope).pathname;
 const SHELL = [BASE, `${BASE}manifest.webmanifest`, `${BASE}favicon.svg`];
 
